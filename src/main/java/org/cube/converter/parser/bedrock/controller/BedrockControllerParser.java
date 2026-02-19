@@ -8,6 +8,7 @@ import org.cube.converter.util.GsonUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,9 +56,33 @@ public class BedrockControllerParser {
                 }
             }
 
+            // Parse part_visibility
+            final Map<String, String> partVisibility = new LinkedHashMap<>();
+            if (object.has("part_visibility")) {
+                final JsonArray pvArray = object.getAsJsonArray("part_visibility");
+                for (final JsonElement elem : pvArray) {
+                    if (elem.isJsonObject()) {
+                        final JsonObject obj = elem.getAsJsonObject();
+                        for (final String boneName : obj.keySet()) {
+                            partVisibility.put(boneName, obj.get(boneName).getAsString());
+                        }
+                    }
+                }
+            }
+
+            // Parse lighting properties
+            boolean ignoreLighting = false;
+            float lightColorMultiplier = 1.0f;
+            if (object.has("ignore_lighting")) {
+                ignoreLighting = object.get("ignore_lighting").getAsBoolean();
+            }
+            if (object.has("light_color_multiplier")) {
+                lightColorMultiplier = object.get("light_color_multiplier").getAsFloat();
+            }
+
             final JsonObject arrays = object.getAsJsonObject("arrays");
             if (arrays == null) {
-                list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, List.of(), List.of(), List.of()));
+                list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, List.of(), List.of(), List.of(), partVisibility, ignoreLighting, lightColorMultiplier));
                 continue;
             }
 
@@ -65,7 +90,7 @@ public class BedrockControllerParser {
             final List<BedrockRenderController.Array> geometries = BedrockRenderController.Array.parse(arrays.getAsJsonObject("geometries"));
             final List<BedrockRenderController.Array> materials = BedrockRenderController.Array.parse(arrays.getAsJsonObject("materials"));
 
-            list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures, geometries));
+            list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures, geometries, partVisibility, ignoreLighting, lightColorMultiplier));
         }
 
         return list;

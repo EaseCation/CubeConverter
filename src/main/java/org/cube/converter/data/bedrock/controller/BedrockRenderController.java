@@ -13,7 +13,9 @@ import static org.cube.converter.util.GsonUtil.*;
 // TODO: hurt color, overlay color, etc....
 public record BedrockRenderController(String identifier, Map<String, String> materialsMap,
                                       String geometryExpression, List<String> textureExpressions,
-                                      List<Array> materials, List<Array> textures, List<Array> geometries) {
+                                      List<Array> materials, List<Array> textures, List<Array> geometries,
+                                      Map<String, String> partVisibility,
+                                      boolean ignoreLighting, float lightColorMultiplier) {
     public record Array(String name, List<String> values) {
         public static List<Array> parse(final JsonObject object) {
             if (object == null) {
