@@ -53,3 +53,6 @@ publishing {
         }
     }
 }
+tasks.withType(Test).configureEach {
+    failOnNoDiscoveredTests = false
+}
