@@ -1,8 +1,8 @@
 package org.cube.converter.parser.bedrock.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonArray;
+import com.viaversion.viaversion.libs.gson.JsonElement;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import org.cube.converter.data.bedrock.controller.BedrockRenderController;
 import org.cube.converter.util.GsonUtil;
 

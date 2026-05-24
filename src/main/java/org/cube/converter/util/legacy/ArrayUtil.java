@@ -1,6 +1,6 @@
 package org.cube.converter.util.legacy;
 
-import com.google.gson.JsonArray;
+import com.viaversion.viaversion.libs.gson.JsonArray;
 import org.cube.converter.util.math.MathUtil;
 public class ArrayUtil {
 

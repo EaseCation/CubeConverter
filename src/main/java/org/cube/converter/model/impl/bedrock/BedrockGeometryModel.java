@@ -2,7 +2,7 @@ package org.cube.converter.model.impl.bedrock;
 
 import lombok.Getter;
 
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import org.cube.converter.converter.FormatConverter;
 import org.cube.converter.converter.enums.RotationType;
 import org.cube.converter.model.GeneralModel;

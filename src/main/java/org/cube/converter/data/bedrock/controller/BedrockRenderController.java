@@ -1,8 +1,8 @@
 package org.cube.converter.data.bedrock.controller;
 
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonElement;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;

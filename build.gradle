@@ -6,12 +6,16 @@ plugins {
 repositories {
     mavenLocal()
     maven {
+        url = "https://repo.viaversion.com"
+    }
+    maven {
         url = 'https://repo.maven.apache.org/maven2/'
     }
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation "com.viaversion:viaversion-common:5.9.1"
+
     implementation 'org.projectlombok:lombok:1.18.36'
     implementation "org.joml:joml:1.10.8"
     annotationProcessor 'org.projectlombok:lombok:1.18.36'

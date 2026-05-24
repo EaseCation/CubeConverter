@@ -1,7 +1,7 @@
 package org.cube.converter.util.element;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonArray;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import lombok.Getter;
 
 import java.util.HashMap;

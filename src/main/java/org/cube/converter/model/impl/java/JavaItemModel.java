@@ -2,8 +2,8 @@ package org.cube.converter.model.impl.java;
 
 import lombok.Getter;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonArray;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import lombok.Setter;
 import org.cube.converter.model.element.Cube;
 import org.cube.converter.model.element.Parent;
