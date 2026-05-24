@@ -1,6 +1,6 @@
 package org.cube.converter.model;
 
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

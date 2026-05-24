@@ -1,7 +1,7 @@
 package org.cube.converter.parser.bedrock.data;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonElement;
+import com.viaversion.viaversion.libs.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.cube.converter.data.bedrock.BedrockAttachableData;
 import org.cube.converter.data.bedrock.BedrockEntityData;

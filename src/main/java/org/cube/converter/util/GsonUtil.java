@@ -1,6 +1,6 @@
 package org.cube.converter.util;
 
-import com.google.gson.*;
+import com.viaversion.viaversion.libs.gson.*;
 import lombok.Getter;
 
 import java.util.ArrayList;
