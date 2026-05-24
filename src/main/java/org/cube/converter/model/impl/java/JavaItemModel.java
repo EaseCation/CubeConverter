@@ -11,6 +11,7 @@ import org.cube.converter.model.GeneralModel;
 import org.cube.converter.util.element.Direction;
 import org.cube.converter.util.element.Position2V;
 import org.cube.converter.util.element.Position3V;
+import org.cube.converter.util.math.MathUtil;
 import org.cube.converter.util.minecraft.Transformation;
 
 import java.util.List;
@@ -120,10 +121,10 @@ public final class JavaItemModel extends GeneralModel {
 
             final JsonObject faceDirection = new JsonObject();
             final JsonArray array = new JsonArray();
-            array.add(Math.clamp(entry.getValue()[0], 0f, 16f));
-            array.add(Math.clamp(entry.getValue()[1], 0f, 16f));
-            array.add(Math.clamp(entry.getValue()[2], 0f, 16f));
-            array.add(Math.clamp(entry.getValue()[3], 0f, 16f));
+            array.add(MathUtil.clamp(entry.getValue()[0], 0f, 16f));
+            array.add(MathUtil.clamp(entry.getValue()[1], 0f, 16f));
+            array.add(MathUtil.clamp(entry.getValue()[2], 0f, 16f));
+            array.add(MathUtil.clamp(entry.getValue()[3], 0f, 16f));
 
             faceDirection.add("uv", array);
             faceDirection.addProperty("texture", "#0");
