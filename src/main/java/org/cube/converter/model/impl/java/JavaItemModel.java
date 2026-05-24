@@ -120,10 +120,10 @@ public final class JavaItemModel extends GeneralModel {
 
             final JsonObject faceDirection = new JsonObject();
             final JsonArray array = new JsonArray();
-            array.add(Math.clamp(entry.getValue()[0], 0, 16));
-            array.add(Math.clamp(entry.getValue()[1], 0, 16));
-            array.add(Math.clamp(entry.getValue()[2], 0, 16));
-            array.add(Math.clamp(entry.getValue()[3], 0, 16));
+            array.add(Math.clamp(entry.getValue()[0], 0f, 16f));
+            array.add(Math.clamp(entry.getValue()[1], 0f, 16f));
+            array.add(Math.clamp(entry.getValue()[2], 0f, 16f));
+            array.add(Math.clamp(entry.getValue()[3], 0f, 16f));
 
             faceDirection.add("uv", array);
             faceDirection.addProperty("texture", "#0");
