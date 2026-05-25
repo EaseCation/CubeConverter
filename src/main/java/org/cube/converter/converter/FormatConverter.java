@@ -5,14 +5,11 @@ import org.cube.converter.model.element.Cube;
 import org.cube.converter.model.element.Parent;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
 import org.cube.converter.model.impl.java.JavaItemModel;
+import org.cube.converter.util.element.Direction;
 import org.cube.converter.util.element.Position3V;
 import org.cube.converter.util.legacy.RotationUtil;
 import org.cube.converter.util.math.Pair;
 import org.cube.converter.util.math.matrix.MatrixUtil;
-import org.cube.converter.util.minecraft.Transformation;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.*;
 
@@ -65,7 +62,17 @@ public class FormatConverter {
         return models;
     }
 
-    public static JavaItemModel geometryToItemModel(final String texture, final BedrockGeometryModel geometry, final RotationType type) {
+    public static JavaItemModel geometryToItemModel(String texture, final BedrockGeometryModel geometry, final RotationType type) {
+        final Map<Direction, String> map = new HashMap<>();
+
+        for (Direction direction : Direction.values()) {
+            map.put(direction, texture);
+        }
+
+        return geometryToItemModel(map, geometry, type);
+    }
+
+    public static JavaItemModel geometryToItemModel(final Map<Direction, String> textureMap, final BedrockGeometryModel geometry, final RotationType type) {
         final Position3V min = new Position3V(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE), max = new Position3V(0, 0, 0);
 
         final List<Parent> parents = new ArrayList<>();
@@ -100,7 +107,7 @@ public class FormatConverter {
         }
 
         final float scale = calculateMinSize(min, max);
-        final JavaItemModel model = new JavaItemModel(texture, geometry.getTextureSize());
+        final JavaItemModel model = new JavaItemModel(textureMap, geometry.getTextureSize());
         model.getParents().addAll(parents);
 
         scale(model, scale);
