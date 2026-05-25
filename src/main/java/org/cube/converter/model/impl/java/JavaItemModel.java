@@ -14,6 +14,7 @@ import org.cube.converter.util.element.Position3V;
 import org.cube.converter.util.math.MathUtil;
 import org.cube.converter.util.minecraft.Transformation;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,18 +22,28 @@ import java.util.Map;
 @Setter
 public final class JavaItemModel extends GeneralModel {
     private Transformation defaultTransformation;
-    private final String texture;
+    private final Map<Direction, String> textures = new HashMap<>();
     private float scale = 1;
+
+    public JavaItemModel(final Map<Direction, String> textures, final Position2V textureSize) {
+        super(textureSize);
+        this.textures.putAll(textures);
+        this.defaultTransformation = null;
+    }
 
     public JavaItemModel(final String texture, final Position2V textureSize) {
         super(textureSize);
-        this.texture = texture;
+        for (Direction direction : Direction.values()) {
+            this.textures.put(direction, texture);
+        }
         this.defaultTransformation = null;
     }
 
     public JavaItemModel(final String texture, final Position2V textureSize, final Transformation transformation) {
         super(textureSize);
-        this.texture = texture;
+        for (Direction direction : Direction.values()) {
+            this.textures.put(direction, texture);
+        }
         this.defaultTransformation = transformation;
     }
 
@@ -43,7 +54,9 @@ public final class JavaItemModel extends GeneralModel {
 
         // Textures.
         final JsonObject textures = new JsonObject();
-        textures.addProperty("0", this.texture);
+        for (Map.Entry<Direction, String> direction : this.textures.entrySet()) {
+            textures.addProperty(direction.getKey().name(), direction.getValue());
+        }
         json.add("textures", textures);
 
         final JsonArray elements = new JsonArray();
@@ -127,7 +140,7 @@ public final class JavaItemModel extends GeneralModel {
             array.add(MathUtil.clamp(entry.getValue()[3], 0f, 16f));
 
             faceDirection.add("uv", array);
-            faceDirection.addProperty("texture", "#0");
+            faceDirection.addProperty("texture", "#" + entry.getKey().name());
             Float uvRotation = element.getUvMap().getUvRotation().get(entry.getKey());
             if (uvRotation != null) {
                 faceDirection.addProperty("rotation", uvRotation);
