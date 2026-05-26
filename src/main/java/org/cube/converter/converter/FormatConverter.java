@@ -98,6 +98,9 @@ public class FormatConverter {
                 if (type != RotationType.POST_1_21_11) {
                     convertTo1Axis(cube);
                     cube.clampToJavaLimitedAngle(type == RotationType.PRE_1_21_6 || type == RotationType.HACKY_PRE_1_21_6);
+                } else {
+                    cube.getRotation().setX(-cube.getRotation().getX());
+                    cube.getRotation().setY(-cube.getRotation().getY());
                 }
 
                 calculateMinMax(cube, min, max);
