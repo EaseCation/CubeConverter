@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.cube.converter.model.element.Cube;
+import org.cube.converter.model.element.Locator;
 import org.cube.converter.model.element.Parent;
 import org.cube.converter.model.element.PolyMesh;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
@@ -99,6 +100,30 @@ public class BedrockGeometryParser {
 
             if (boneObject.has("poly_mesh")) {
                 bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
+            }
+
+            if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
+                JsonObject locatorsObject = boneObject.getAsJsonObject("locators");
+                for (String locatorName : locatorsObject.keySet()) {
+                    JsonElement locatorElement = locatorsObject.get(locatorName);
+                    if (locatorElement == null) {
+                        continue;
+                    }
+                    if (locatorElement.isJsonArray()) {
+                        bone.getLocators().put(locatorName, new Locator(new Position3V(locatorElement.getAsJsonArray()), Position3V.zero(), false));
+                    } else if (locatorElement.isJsonObject()) {
+                        JsonObject locatorObject = locatorElement.getAsJsonObject();
+                        if (locatorObject.has("offset") && locatorObject.get("offset").isJsonArray()) {
+                            Position3V offset = new Position3V(locatorObject.getAsJsonArray("offset"));
+                            Position3V rotation = locatorObject.has("rotation") && locatorObject.get("rotation").isJsonArray()
+                                    ? new Position3V(locatorObject.getAsJsonArray("rotation"))
+                                    : Position3V.zero();
+                            boolean ignoreInheritedScale = locatorObject.has("ignore_inherited_scale")
+                                    && locatorObject.get("ignore_inherited_scale").getAsBoolean();
+                            bone.getLocators().put(locatorName, new Locator(offset, rotation, ignoreInheritedScale));
+                        }
+                    }
+                }
             }
 
             if (!boneObject.has("cubes")) {
