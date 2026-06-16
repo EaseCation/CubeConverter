@@ -3,6 +3,7 @@ package org.cube.converter.parser.bedrock.controller;
 import com.viaversion.viaversion.libs.gson.JsonArray;
 import com.viaversion.viaversion.libs.gson.JsonElement;
 import com.viaversion.viaversion.libs.gson.JsonObject;
+import com.viaversion.viaversion.libs.gson.JsonPrimitive;
 import org.cube.converter.data.bedrock.controller.BedrockRenderController;
 import org.cube.converter.util.GsonUtil;
 
@@ -77,7 +78,7 @@ public class BedrockControllerParser {
                 ignoreLighting = object.get("ignore_lighting").getAsBoolean();
             }
             if (object.has("light_color_multiplier")) {
-                lightColorMultiplier = object.get("light_color_multiplier").getAsFloat();
+                lightColorMultiplier = parseFloatOrDefault(object.get("light_color_multiplier"), 1.0f);
             }
 
             final JsonObject arrays = object.getAsJsonObject("arrays");
@@ -94,6 +95,27 @@ public class BedrockControllerParser {
         }
 
         return list;
+    }
+
+    // light_color_multiplier (and similar fields) may be a MoLang expression such as
+    // "query.is_baby ? 1.6 : 1" rather than a constant. We cannot evaluate MoLang at parse time
+    // (no entity context here), so fall back to the default instead of crashing the whole pack parse.
+    private static float parseFloatOrDefault(final JsonElement element, final float fallback) {
+        if (element == null || !element.isJsonPrimitive()) {
+            return fallback;
+        }
+        final JsonPrimitive primitive = element.getAsJsonPrimitive();
+        if (primitive.isNumber()) {
+            return primitive.getAsFloat();
+        }
+        if (primitive.isString()) {
+            try {
+                return Float.parseFloat(primitive.getAsString().trim());
+            } catch (final NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private static List<String> arrayToList(JsonArray array) {
