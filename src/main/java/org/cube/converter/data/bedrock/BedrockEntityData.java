@@ -24,6 +24,7 @@ public class BedrockEntityData {
     private final Map<String, String> animations;
     private final Map<String, String> textures;
     private final Map<String, String> geometries;
+    private final Map<String, String> particleEffects;
 
     public record RenderController(String identifier, String condition) {
         public static List<RenderController> parse(final JsonArray array) {

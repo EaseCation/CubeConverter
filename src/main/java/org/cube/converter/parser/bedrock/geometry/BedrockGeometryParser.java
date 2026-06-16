@@ -4,7 +4,9 @@ import com.viaversion.viaversion.libs.gson.JsonArray;
 import com.viaversion.viaversion.libs.gson.JsonElement;
 import com.viaversion.viaversion.libs.gson.JsonObject;
 import org.cube.converter.model.element.Cube;
+import org.cube.converter.model.element.Locator;
 import org.cube.converter.model.element.Parent;
+import org.cube.converter.model.element.PolyMesh;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
 import org.cube.converter.util.GsonUtil;
 import org.cube.converter.util.element.Position2V;
@@ -96,6 +98,34 @@ public class BedrockGeometryParser {
                 bone.setParent(boneObject.get("parent").getAsString());
             }
 
+            if (boneObject.has("poly_mesh")) {
+                bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
+            }
+
+            if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
+                JsonObject locatorsObject = boneObject.getAsJsonObject("locators");
+                for (String locatorName : locatorsObject.keySet()) {
+                    JsonElement locatorElement = locatorsObject.get(locatorName);
+                    if (locatorElement == null) {
+                        continue;
+                    }
+                    if (locatorElement.isJsonArray()) {
+                        bone.getLocators().put(locatorName, new Locator(new Position3V(locatorElement.getAsJsonArray()), Position3V.zero(), false));
+                    } else if (locatorElement.isJsonObject()) {
+                        JsonObject locatorObject = locatorElement.getAsJsonObject();
+                        if (locatorObject.has("offset") && locatorObject.get("offset").isJsonArray()) {
+                            Position3V offset = new Position3V(locatorObject.getAsJsonArray("offset"));
+                            Position3V rotation = locatorObject.has("rotation") && locatorObject.get("rotation").isJsonArray()
+                                    ? new Position3V(locatorObject.getAsJsonArray("rotation"))
+                                    : Position3V.zero();
+                            boolean ignoreInheritedScale = locatorObject.has("ignore_inherited_scale")
+                                    && locatorObject.get("ignore_inherited_scale").getAsBoolean();
+                            bone.getLocators().put(locatorName, new Locator(offset, rotation, ignoreInheritedScale));
+                        }
+                    }
+                }
+            }
+
             if (!boneObject.has("cubes")) {
                 bones.add(bone);
                 continue;
@@ -143,5 +173,51 @@ public class BedrockGeometryParser {
         final BedrockGeometryModel geometryModel = new BedrockGeometryModel(identifier, new Position2V(textureWidth, textureHeight));
         geometryModel.getParents().addAll(bones);
         return geometryModel;
+    }
+
+    private static PolyMesh parsePolyMesh(JsonObject polyMeshObj) {
+        boolean normalizedUvs = polyMeshObj.has("normalized_uvs")
+                && polyMeshObj.get("normalized_uvs").getAsBoolean();
+
+        final JsonArray positionsArray = polyMeshObj.getAsJsonArray("positions");
+        float[][] positions = new float[positionsArray.size()][3];
+        for (int i = 0; i < positionsArray.size(); i++) {
+            JsonArray pos = positionsArray.get(i).getAsJsonArray();
+            positions[i][0] = pos.get(0).getAsFloat();
+            positions[i][1] = pos.get(1).getAsFloat();
+            positions[i][2] = pos.get(2).getAsFloat();
+        }
+
+        final JsonArray normalsArray = polyMeshObj.getAsJsonArray("normals");
+        float[][] normals = new float[normalsArray.size()][3];
+        for (int i = 0; i < normalsArray.size(); i++) {
+            JsonArray n = normalsArray.get(i).getAsJsonArray();
+            normals[i][0] = n.get(0).getAsFloat();
+            normals[i][1] = n.get(1).getAsFloat();
+            normals[i][2] = n.get(2).getAsFloat();
+        }
+
+        final JsonArray uvsArray = polyMeshObj.getAsJsonArray("uvs");
+        float[][] uvs = new float[uvsArray.size()][2];
+        for (int i = 0; i < uvsArray.size(); i++) {
+            JsonArray uv = uvsArray.get(i).getAsJsonArray();
+            uvs[i][0] = uv.get(0).getAsFloat();
+            uvs[i][1] = uv.get(1).getAsFloat();
+        }
+
+        final JsonArray polysArray = polyMeshObj.getAsJsonArray("polys");
+        int[][][] polys = new int[polysArray.size()][][];
+        for (int i = 0; i < polysArray.size(); i++) {
+            JsonArray poly = polysArray.get(i).getAsJsonArray();
+            polys[i] = new int[poly.size()][3];
+            for (int j = 0; j < poly.size(); j++) {
+                JsonArray vertex = poly.get(j).getAsJsonArray();
+                polys[i][j][0] = vertex.get(0).getAsInt();
+                polys[i][j][1] = vertex.get(1).getAsInt();
+                polys[i][j][2] = vertex.get(2).getAsInt();
+            }
+        }
+
+        return new PolyMesh(normalizedUvs, positions, normals, uvs, polys);
     }
 }

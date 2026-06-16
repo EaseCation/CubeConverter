@@ -19,6 +19,8 @@ public class Parent {
     private final Position3V rotation;
 
     private final Map<Integer, Cube> cubes = new HashMap<>();
+    private final Map<String, Locator> locators = new HashMap<>();
+    private PolyMesh polyMesh = null;
 
     @Override
     public Parent clone() {
@@ -26,7 +28,11 @@ public class Parent {
         for (final Map.Entry<Integer, Cube> entry : this.cubes.entrySet()) {
             parent.cubes.put(entry.getKey(), entry.getValue().clone());
         }
+        for (final Map.Entry<String, Locator> entry : this.locators.entrySet()) {
+            parent.locators.put(entry.getKey(), entry.getValue().clone());
+        }
         parent.setParent(this.parent);
+        parent.setPolyMesh(this.polyMesh);
 
         return parent;
     }

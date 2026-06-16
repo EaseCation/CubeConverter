@@ -38,6 +38,12 @@ publishing {
         maven(MavenPublication) {
             from components.java
         }
+        // JitPack 使用 com.github.<org>:<repo> 坐标，本地也发布一份兼容的
+        jitpackCompat(MavenPublication) {
+            groupId = 'com.github.EaseCation'
+            artifactId = 'CubeConverter'
+            from components.java
+        }
     }
 
     repositories {
@@ -50,4 +56,7 @@ publishing {
             }
         }
     }
+}
+tasks.withType(Test).configureEach {
+    failOnNoDiscoveredTests = false
 }
