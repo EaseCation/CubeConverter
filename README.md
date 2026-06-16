@@ -29,11 +29,12 @@ CubeConverter would not have been possible without the following projects:
 
 | 本 fork 分支 | 对应 oryxel1 分支 | gson 风味 | 消费方 |
 |--------------|-------------------|-----------|--------|
-| `unified`         | `oryxel1/master`  | **plain** `com.google.gson`              | NeoForge 客户端(VBU)、BedrockMotion(NeoForge) |
-| `unified-vv-json` | `oryxel1/vv-json` | **relocated** `com.viaversion.viaversion.libs.gson` | ViaProxy / ViaBedrock(经 BedrockMotion) |
+| `master`         | `oryxel1/master`  | **plain** `com.google.gson`              | NeoForge 客户端(VBU)、BedrockMotion(NeoForge) |
+| `vv-json` | `oryxel1/vv-json` | **relocated** `com.viaversion.viaversion.libs.gson` | ViaProxy / ViaBedrock(经 BedrockMotion) |
 
-- `unified-vv-json` = `unified` + 一层薄 gson relocation(完全等价 oryxel1 "merge master into vv-json")。
-- ViaProxyWorkspace 的 CubeConverter checkout 停在 **`unified-vv-json`**;NeoForgeWorkspace 的停在 **`unified`**。
+- `vv-json` = `master` + 一层薄 gson relocation(完全等价 oryxel1 "merge master into vv-json")。
+- ViaProxyWorkspace 的 CubeConverter checkout 停在 **`vv-json`**;NeoForgeWorkspace 的停在 **`master`**。
+- `master` 现在直接对齐上游(= oryxel1/master + 我方补丁);统一前的旧 EaseCation 状态(`da09dcc`)保留在备份分支 **`backup/master-da09dcc`**,仅作存档、不再使用。
 
 ## 3. EaseCation 自有补丁（相对 oryxel1 基的全部增量)
 
@@ -49,21 +50,21 @@ CubeConverter would not have been possible without the following projects:
 ```bash
 git fetch oryxel1
 # 1) 把自有补丁 rebase 到上游 master 之上
-git checkout unified
+git checkout master
 git rebase oryxel1/master          # 冲突一律以 oryxel1 为准,仅重新落上面 5 块能力
-# 2) 把 unified 并入 relocated 分支(沿用上游 merge 模式)
-git checkout unified-vv-json
-git merge unified                  # gson import 冲突取 relocated 侧;build.gradle 保留 compileOnlyApi
+# 2) 把 master 并入 relocated 分支(沿用上游 merge 模式)
+git checkout vv-json
+git merge master                   # gson import 冲突取 relocated 侧;build.gradle 保留 compileOnlyApi
 # 3) 验证两风味都能编译(在各自 workspace 根目录,见第 6 节),再 push
-git push origin unified unified-vv-json
+git push origin master vv-json
 ```
 
 > 关键原则:**冲突时优先采用 oryxel1 的实现/命名/API/旋转逻辑**,只把上面 5 块能力重新叠加上去。若上游已自带某块(例如未来 PR 合入),就从补丁里删掉它。
 
 ## 5. gson 风味是怎么处理的(别破坏)
 
-- `unified`(plain):`build.gradle` 用 `implementation 'com.google.code.gson:gson'`,直接给 NeoForge/MC 用。
-- `unified-vv-json`(relocated):`build.gradle` 用
+- `master`(plain):`build.gradle` 用 `implementation 'com.google.code.gson:gson'`,直接给 NeoForge/MC 用。
+- `vv-json`(relocated):`build.gradle` 用
   `compileOnlyApi("com.viaversion:viaversion-common") { attributes { Bundling.SHADOWED } }`。
   - **compileOnlyApi** 让 relocated gson 透传到消费方(BedrockMotion/ViaBedrock)的 compile classpath,用于解析本库解析器的 `parse(JsonObject)` 重载;**运行期由 ViaVersion 提供**,不打入产物。
   - 版本(`5.9.x-SNAPSHOT`)与 SHADOWED 属性需与 ViaBedrock 的 viaversion-common 依赖保持一致。
