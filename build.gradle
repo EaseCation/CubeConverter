@@ -14,7 +14,14 @@ repositories {
 }
 
 dependencies {
-    implementation "com.viaversion:viaversion-common:5.9.1"
+    // compileOnlyApi:relocated gson(com.viaversion.viaversion.libs.gson)既供本工程编译,也透传到
+    // 消费方(BedrockMotion/ViaBedrock)的 compile classpath——它们需要它来解析本库解析器的重载签名
+    // (parse(JsonObject) 等)。不进运行期(由 ViaVersion 提供)。plain 分支(NeoForge)无此依赖,天然区分风味。
+    compileOnlyApi("com.viaversion:viaversion-common:5.9.2-SNAPSHOT") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
+        }
+    }
 
     implementation 'org.projectlombok:lombok:1.18.36'
     implementation "org.joml:joml:1.10.8"
