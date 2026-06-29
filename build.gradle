@@ -17,6 +17,12 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.36'
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 group = 'org.oryxel.cube'
 version = '1.3'
 description = 'cubeconverter'
