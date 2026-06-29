@@ -13,6 +13,12 @@ repositories {
     }
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
     // compileOnlyApi:relocated gson(com.viaversion.viaversion.libs.gson)既供本工程编译,也透传到
     // 消费方(BedrockMotion/ViaBedrock)的 compile classpath——它们需要它来解析本库解析器的重载签名
