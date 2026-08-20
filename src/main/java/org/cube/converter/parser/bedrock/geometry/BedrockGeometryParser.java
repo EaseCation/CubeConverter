@@ -98,6 +98,13 @@ public class BedrockGeometryParser {
                 bone.setParent(boneObject.get("parent").getAsString());
             }
 
+            if (boneObject.has("binding")) {
+                if (!boneObject.get("binding").isJsonPrimitive() || !boneObject.getAsJsonPrimitive("binding").isString()) {
+                    throw new IllegalArgumentException("Bone '" + name + "' binding must be a string MoLang expression");
+                }
+                bone.setBinding(boneObject.get("binding").getAsString());
+            }
+
             if (boneObject.has("poly_mesh")) {
                 bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
             }

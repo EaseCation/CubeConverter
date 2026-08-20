@@ -7,6 +7,7 @@ import org.cube.converter.data.bedrock.BedrockAttachableData;
 import org.cube.converter.data.bedrock.BedrockEntityData;
 import org.cube.converter.util.GsonUtil;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,11 +24,19 @@ public class BedrockDataParser {
     }
 
     public static BedrockAttachableData parseAttachable(final String json) {
+        return parseAttachable(json, "<inline attachable>");
+    }
+
+    public static BedrockAttachableData parseAttachable(final String json, final String sourceName) {
         JsonElement element = GsonUtil.getGson().fromJson(json.trim(), JsonElement.class);
         if (!element.isJsonObject()) // Well this can happen sometimes a json can only have ["en_US"], or something like that, I have no idea.
             return null;
 
-        return parseAttachable(element.getAsJsonObject());
+        try {
+            return parseAttachable(element.getAsJsonObject());
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("Invalid attachable in " + sourceName + ": " + exception.getMessage(), exception);
+        }
     }
 
     private static BedrockAttachableData parseAttachable(final JsonObject json) {
@@ -50,6 +59,7 @@ public class BedrockDataParser {
         final Map<String, String> geometries = objectToMap(description.getAsJsonObject("geometry"));
         final Map<String, String> animations = objectToMap(description.getAsJsonObject("animations"));
         final Map<String, String> particleEffects = objectToMap(description.getAsJsonObject("particle_effects"));
+        final Map<String, String> soundEffects = objectToMap(description.getAsJsonObject("sound_effects"));
         final List<BedrockEntityData.RenderController> controllers = BedrockEntityData.RenderController.parse(description.getAsJsonArray("render_controllers"));
         final BedrockEntityData.Scripts scripts;
         if (description.has("scripts")) {
@@ -58,7 +68,28 @@ public class BedrockDataParser {
             scripts = BedrockEntityData.Scripts.emptyScript();
         }
 
-        return attachable ? new BedrockAttachableData(identifier, scripts, controllers, materials, animations, textures, geometries, particleEffects) :
-                new BedrockEntityData(identifier, scripts, controllers, materials, animations, textures, geometries, particleEffects);
+        final Map<String, String> itemConditions = attachable ? parseItemConditions(description) : Map.of();
+
+        return attachable ? new BedrockAttachableData(identifier, scripts, controllers, materials, animations, textures, geometries, particleEffects, itemConditions, soundEffects) :
+                new BedrockEntityData(identifier, scripts, controllers, materials, animations, textures, geometries, particleEffects, soundEffects);
+    }
+
+    private static Map<String, String> parseItemConditions(final JsonObject description) {
+        final JsonElement itemElement = description.get("item");
+        if (itemElement == null) {
+            return Map.of();
+        }
+        if (!itemElement.isJsonObject()) {
+            throw new IllegalArgumentException("minecraft:attachable.description.item must be an object");
+        }
+
+        final LinkedHashMap<String, String> conditions = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : itemElement.getAsJsonObject().entrySet()) {
+            if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isString()) {
+                throw new IllegalArgumentException("minecraft:attachable.description.item." + entry.getKey() + " must be a string MoLang expression");
+            }
+            conditions.put(entry.getKey(), entry.getValue().getAsString());
+        }
+        return conditions;
     }
 }

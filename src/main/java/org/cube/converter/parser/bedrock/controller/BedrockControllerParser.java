@@ -47,13 +47,24 @@ public class BedrockControllerParser {
                 }
             }
 
-            final Map<String, String> materialsMap = new HashMap<>();
+            final Map<String, String> materialsMap = new LinkedHashMap<>();
             if (object.has("materials")) {
                 for (final JsonElement element : object.getAsJsonArray("materials")) {
                     if (!element.isJsonObject()) {
                         continue;
                     }
                     materialsMap.putAll(objectToMap(element.getAsJsonObject()));
+                }
+            }
+
+            final Map<String, String> colorExpressions = new LinkedHashMap<>();
+            final JsonObject color = object.getAsJsonObject("color");
+            if (color != null) {
+                for (String component : List.of("r", "g", "b", "a")) {
+                    final JsonElement value = color.get(component);
+                    if (value != null && value.isJsonPrimitive()) {
+                        colorExpressions.put(component, value.getAsString());
+                    }
                 }
             }
 
@@ -83,7 +94,9 @@ public class BedrockControllerParser {
 
             final JsonObject arrays = object.getAsJsonObject("arrays");
             if (arrays == null) {
-                list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, List.of(), List.of(), List.of(), partVisibility, ignoreLighting, lightColorMultiplier));
+                list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression,
+                        textureExpressions, List.of(), List.of(), List.of(), partVisibility,
+                        colorExpressions, ignoreLighting, lightColorMultiplier));
                 continue;
             }
 
@@ -91,7 +104,9 @@ public class BedrockControllerParser {
             final List<BedrockRenderController.Array> geometries = BedrockRenderController.Array.parse(arrays.getAsJsonObject("geometries"));
             final List<BedrockRenderController.Array> materials = BedrockRenderController.Array.parse(arrays.getAsJsonObject("materials"));
 
-            list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures, geometries, partVisibility, ignoreLighting, lightColorMultiplier));
+            list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression,
+                    textureExpressions, materials, textures, geometries, partVisibility,
+                    colorExpressions, ignoreLighting, lightColorMultiplier));
         }
 
         return list;

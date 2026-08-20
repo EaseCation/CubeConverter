@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import java.util.Map;
 
 import static org.cube.converter.util.GsonUtil.*;
 
-@RequiredArgsConstructor
 @ToString
 @Getter
 public class BedrockEntityData {
@@ -25,6 +23,29 @@ public class BedrockEntityData {
     private final Map<String, String> textures;
     private final Map<String, String> geometries;
     private final Map<String, String> particleEffects;
+    private final Map<String, String> soundEffects;
+
+    public BedrockEntityData(String identifier, Scripts scripts, List<RenderController> controllers,
+                             Map<String, String> materials, Map<String, String> animations,
+                             Map<String, String> textures, Map<String, String> geometries,
+                             Map<String, String> particleEffects) {
+        this(identifier, scripts, controllers, materials, animations, textures, geometries, particleEffects, Map.of());
+    }
+
+    public BedrockEntityData(String identifier, Scripts scripts, List<RenderController> controllers,
+                             Map<String, String> materials, Map<String, String> animations,
+                             Map<String, String> textures, Map<String, String> geometries,
+                             Map<String, String> particleEffects, Map<String, String> soundEffects) {
+        this.identifier = identifier;
+        this.scripts = scripts;
+        this.controllers = controllers;
+        this.materials = materials;
+        this.animations = animations;
+        this.textures = textures;
+        this.geometries = geometries;
+        this.particleEffects = particleEffects;
+        this.soundEffects = soundEffects == null ? Map.of() : soundEffects;
+    }
 
     public record RenderController(String identifier, String condition) {
         public static List<RenderController> parse(final JsonArray array) {
