@@ -61,4 +61,22 @@ class AttachableParsingTest {
         differentBinding.setBinding("rightitem");
         assertNotEquals(bone, differentBinding);
     }
+
+    @Test
+    void convertsTextureMeshesToRenderablePolyMesh() {
+        List<BedrockGeometryModel> geometries = BedrockGeometryParser.parse("""
+                {"minecraft:geometry":[{
+                  "description":{"identifier":"geometry.sprite","texture_width":16,"texture_height":16},
+                  "bones":[{"name":"rightitem","pivot":[0,0,0],"rotation":[0,0,0],
+                    "texture_meshes":[{"texture":"default","local_pivot":[0,0,0],
+                      "position":[2,1,-1],"rotation":[0,-135,90]}]}]
+                }]}
+                """);
+
+        Parent bone = geometries.getFirst().getParents().getFirst();
+        assertNotNull(bone.getPolyMesh());
+        assertEquals(8, bone.getPolyMesh().getPositions().length);
+        assertEquals(6, bone.getPolyMesh().getPolys().length);
+        assertEquals(4, bone.getPolyMesh().getUvs().length);
+    }
 }

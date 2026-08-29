@@ -109,6 +109,14 @@ public class BedrockGeometryParser {
                 bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
             }
 
+            if (boneObject.has("texture_meshes") && boneObject.get("texture_meshes").isJsonArray()) {
+                final PolyMesh textureMesh = parseTextureMeshes(
+                        boneObject.getAsJsonArray("texture_meshes"), textureWidth, textureHeight);
+                if (textureMesh != null) {
+                    bone.setPolyMesh(mergePolyMeshes(bone.getPolyMesh(), textureMesh));
+                }
+            }
+
             if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
                 JsonObject locatorsObject = boneObject.getAsJsonObject("locators");
                 for (String locatorName : locatorsObject.keySet()) {
@@ -226,5 +234,169 @@ public class BedrockGeometryParser {
         }
 
         return new PolyMesh(normalizedUvs, positions, normals, uvs, polys);
+    }
+
+    /**
+     * Converts Bedrock texture meshes into a thin voxelized sprite mesh. The Bedrock runtime builds
+     * these meshes from the referenced texture's alpha channel; retaining the full textured plane
+     * here preserves the same transparent silhouette under Java's alpha-test render type while
+     * keeping the geometry independent from pack texture lifetime.
+     */
+    private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight) {
+        final List<float[]> positions = new ArrayList<>();
+        final List<float[]> normals = new ArrayList<>();
+        final List<float[]> uvs = new ArrayList<>();
+        final List<int[][]> polygons = new ArrayList<>();
+        for (JsonElement element : textureMeshes) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            final JsonObject mesh = element.getAsJsonObject();
+            final float[] localPivot = vector(mesh, "local_pivot", 0, 0, 0);
+            final float[] position = vector(mesh, "position", 0, 0, 0);
+            final float[] rotation = vector(mesh, "rotation", 0, 0, 0);
+            final float[] scale = vector(mesh, "scale", 1, 1, 1);
+            final float depth = mesh.has("use_pixel_depth") && !mesh.get("use_pixel_depth").getAsBoolean()
+                    ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
+
+            final int offset = positions.size();
+            final float[][] corners = {
+                    {-textureWidth, 0, 0}, {-textureWidth, -depth, 0},
+                    {0, -depth, 0}, {0, 0, 0},
+                    {-textureWidth, 0, textureHeight}, {-textureWidth, -depth, textureHeight},
+                    {0, -depth, textureHeight}, {0, 0, textureHeight}
+            };
+            for (float[] corner : corners) {
+                final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
+                positions.add(transformed);
+            }
+
+            final float[][] faceNormals = {
+                    {0, 1, 0}, {0, -1, 0}, {0, 0, -1},
+                    {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}
+            };
+            for (float[] normal : faceNormals) {
+                normals.add(transformTextureNormal(normal, rotation));
+            }
+            final int[][] faceUvs = {
+                    {0, 0}, {0, textureHeight}, {textureWidth, textureHeight}, {textureWidth, 0}
+            };
+            for (int[] uv : faceUvs) {
+                uvs.add(new float[]{uv[0], uv[1]});
+            }
+
+            // Winding follows ModelPart's quad convention. Each entry is [position, normal, uv].
+            polygons.add(new int[][]{
+                    {offset + 0, normals.size() - 6, uvs.size() - 4},
+                    {offset + 3, normals.size() - 6, uvs.size() - 1},
+                    {offset + 2, normals.size() - 6, uvs.size() - 2},
+                    {offset + 1, normals.size() - 6, uvs.size() - 3}
+            });
+            polygons.add(new int[][]{
+                    {offset + 4, normals.size() - 5, uvs.size() - 4},
+                    {offset + 5, normals.size() - 5, uvs.size() - 3},
+                    {offset + 6, normals.size() - 5, uvs.size() - 2},
+                    {offset + 7, normals.size() - 5, uvs.size() - 1}
+            });
+            polygons.add(new int[][]{
+                    {offset + 0, normals.size() - 4, uvs.size() - 4},
+                    {offset + 1, normals.size() - 4, uvs.size() - 3},
+                    {offset + 5, normals.size() - 4, uvs.size() - 2},
+                    {offset + 4, normals.size() - 4, uvs.size() - 1}
+            });
+            polygons.add(new int[][]{
+                    {offset + 3, normals.size() - 3, uvs.size() - 4},
+                    {offset + 7, normals.size() - 3, uvs.size() - 3},
+                    {offset + 6, normals.size() - 3, uvs.size() - 2},
+                    {offset + 2, normals.size() - 3, uvs.size() - 1}
+            });
+            polygons.add(new int[][]{
+                    {offset + 0, normals.size() - 2, uvs.size() - 4},
+                    {offset + 4, normals.size() - 2, uvs.size() - 3},
+                    {offset + 7, normals.size() - 2, uvs.size() - 2},
+                    {offset + 3, normals.size() - 2, uvs.size() - 1}
+            });
+            polygons.add(new int[][]{
+                    {offset + 1, normals.size() - 1, uvs.size() - 4},
+                    {offset + 2, normals.size() - 1, uvs.size() - 3},
+                    {offset + 6, normals.size() - 1, uvs.size() - 2},
+                    {offset + 5, normals.size() - 1, uvs.size() - 1}
+            });
+        }
+        if (positions.isEmpty()) {
+            return null;
+        }
+        return new PolyMesh(false,
+                positions.toArray(float[][]::new), normals.toArray(float[][]::new),
+                uvs.toArray(float[][]::new), polygons.toArray(int[][][]::new));
+    }
+
+    private static float[] vector(JsonObject object, String name, float x, float y, float z) {
+        if (!object.has(name) || !object.get(name).isJsonArray()) {
+            return new float[]{x, y, z};
+        }
+        final JsonArray values = object.getAsJsonArray(name);
+        return new float[]{
+                values.size() > 0 ? values.get(0).getAsFloat() : x,
+                values.size() > 1 ? values.get(1).getAsFloat() : y,
+                values.size() > 2 ? values.get(2).getAsFloat() : z
+        };
+    }
+
+    private static float[] transformTextureVertex(float[] vertex, float[] scale, float[] localPivot,
+                                                   float[] rotation, float[] position) {
+        float x = vertex[0] * scale[0] + localPivot[0];
+        float y = vertex[1] * scale[1] + localPivot[1];
+        float z = vertex[2] * scale[2] + localPivot[2];
+        final double rx = Math.toRadians(rotation[0]);
+        final double ry = Math.toRadians(rotation[1]);
+        final double rz = Math.toRadians(rotation[2]);
+        double cos = Math.cos(rx), sin = Math.sin(rx);
+        double nextY = y * cos - z * sin;
+        double nextZ = y * sin + z * cos;
+        y = (float) nextY;
+        z = (float) nextZ;
+        cos = Math.cos(ry); sin = Math.sin(ry);
+        double nextX = x * cos + z * sin;
+        nextZ = -x * sin + z * cos;
+        x = (float) nextX;
+        z = (float) nextZ;
+        cos = Math.cos(rz); sin = Math.sin(rz);
+        nextX = x * cos - y * sin;
+        nextY = x * sin + y * cos;
+        return new float[]{(float) nextX + position[0], (float) nextY + position[1], z + position[2]};
+    }
+
+    private static float[] transformTextureNormal(float[] normal, float[] rotation) {
+        return transformTextureVertex(normal, new float[]{1, 1, 1}, new float[]{0, 0, 0}, rotation,
+                new float[]{0, 0, 0});
+    }
+
+    private static PolyMesh mergePolyMeshes(PolyMesh first, PolyMesh second) {
+        if (first == null) {
+            return second;
+        }
+        final List<float[]> positions = new ArrayList<>(List.of(first.getPositions()));
+        final List<float[]> normals = new ArrayList<>(List.of(first.getNormals()));
+        final List<float[]> uvs = new ArrayList<>(List.of(first.getUvs()));
+        final List<int[][]> polygons = new ArrayList<>(List.of(first.getPolys()));
+        final int positionOffset = positions.size();
+        final int normalOffset = normals.size();
+        final int uvOffset = uvs.size();
+        positions.addAll(List.of(second.getPositions()));
+        normals.addAll(List.of(second.getNormals()));
+        uvs.addAll(List.of(second.getUvs()));
+        for (int[][] polygon : second.getPolys()) {
+            final int[][] copy = new int[polygon.length][3];
+            for (int i = 0; i < polygon.length; i++) {
+                copy[i][0] = polygon[i][0] + positionOffset;
+                copy[i][1] = polygon[i][1] + normalOffset;
+                copy[i][2] = polygon[i][2] + uvOffset;
+            }
+            polygons.add(copy);
+        }
+        return new PolyMesh(first.isNormalizedUvs(), positions.toArray(float[][]::new),
+                normals.toArray(float[][]::new), uvs.toArray(float[][]::new),
+                polygons.toArray(int[][][]::new));
     }
 }
