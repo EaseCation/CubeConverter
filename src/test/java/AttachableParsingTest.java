@@ -5,6 +5,7 @@ import org.cube.converter.parser.bedrock.data.BedrockDataParser;
 import org.cube.converter.parser.bedrock.geometry.BedrockGeometryParser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -82,5 +83,17 @@ class AttachableParsingTest {
         float[][] positions = bone.getPolyMesh().getPositions();
         assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
         assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
+
+        int[][][] polys = bone.getPolyMesh().getPolys();
+        assertArrayEquals(new int[]{0, 3, 2, 1}, positionIndices(polys[0]));
+        assertArrayEquals(new int[]{4, 5, 6, 7}, positionIndices(polys[1]));
+        assertArrayEquals(new int[]{0, 1, 5, 4}, positionIndices(polys[2]));
+        assertArrayEquals(new int[]{3, 7, 6, 2}, positionIndices(polys[3]));
+        assertArrayEquals(new int[]{0, 4, 7, 3}, positionIndices(polys[4]));
+        assertArrayEquals(new int[]{1, 2, 6, 5}, positionIndices(polys[5]));
+    }
+
+    private static int[] positionIndices(int[][] polygon) {
+        return Arrays.stream(polygon).mapToInt(vertex -> vertex[0]).toArray();
     }
 }

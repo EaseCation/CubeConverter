@@ -271,9 +271,11 @@ public class BedrockGeometryParser {
                 positions.add(transformed);
             }
 
+            // The vertex order below is expressed in the positive-width/depth layout above.
+            // Normals are kept in Bedrock space and converted to Java space by GeometryUtil.
             final float[][] faceNormals = {
-                    {0, 1, 0}, {0, -1, 0}, {0, 0, -1},
-                    {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}
+                    {0, 0, -1}, {0, 0, 1}, {-1, 0, 0},
+                    {1, 0, 0}, {0, -1, 0}, {0, 1, 0}
             };
             for (float[] normal : faceNormals) {
                 normals.add(transformTextureNormal(normal, rotation));
@@ -286,12 +288,12 @@ public class BedrockGeometryParser {
             }
 
             // Winding follows ModelPart's quad convention. Each entry is [position, normal, uv].
-            polygons.add(face(offset, normals.size() - 6, uvs.size() - 4, 0, 3, 7, 4));
-            polygons.add(face(offset, normals.size() - 5, uvs.size() - 4, 1, 5, 6, 2));
-            polygons.add(face(offset, normals.size() - 4, uvs.size() - 4, 0, 1, 5, 4));
-            polygons.add(face(offset, normals.size() - 3, uvs.size() - 4, 3, 7, 6, 2));
-            polygons.add(face(offset, normals.size() - 2, uvs.size() - 4, 0, 4, 5, 1));
-            polygons.add(face(offset, normals.size() - 1, uvs.size() - 4, 3, 2, 6, 7));
+            polygons.add(face(offset, normals.size() - 6, uvs.size() - 4, 0, 3, 2, 1)); // z = 0
+            polygons.add(face(offset, normals.size() - 5, uvs.size() - 4, 4, 5, 6, 7)); // z = height
+            polygons.add(face(offset, normals.size() - 4, uvs.size() - 4, 0, 1, 5, 4)); // x = 0
+            polygons.add(face(offset, normals.size() - 3, uvs.size() - 4, 3, 7, 6, 2)); // x = width
+            polygons.add(face(offset, normals.size() - 2, uvs.size() - 4, 0, 4, 7, 3)); // y = 0
+            polygons.add(face(offset, normals.size() - 1, uvs.size() - 4, 1, 2, 6, 5)); // y = depth
         }
         if (positions.isEmpty()) {
             return null;
