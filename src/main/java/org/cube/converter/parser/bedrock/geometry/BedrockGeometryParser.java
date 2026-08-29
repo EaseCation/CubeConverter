@@ -261,10 +261,10 @@ public class BedrockGeometryParser {
 
             final int offset = positions.size();
             final float[][] corners = {
-                    {-textureWidth, 0, 0}, {-textureWidth, -depth, 0},
-                    {0, -depth, 0}, {0, 0, 0},
-                    {-textureWidth, 0, textureHeight}, {-textureWidth, -depth, textureHeight},
-                    {0, -depth, textureHeight}, {0, 0, textureHeight}
+                    {0, 0, 0}, {0, depth, 0},
+                    {textureWidth, depth, 0}, {textureWidth, 0, 0},
+                    {0, 0, textureHeight}, {0, depth, textureHeight},
+                    {textureWidth, depth, textureHeight}, {textureWidth, 0, textureHeight}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
@@ -286,42 +286,12 @@ public class BedrockGeometryParser {
             }
 
             // Winding follows ModelPart's quad convention. Each entry is [position, normal, uv].
-            polygons.add(new int[][]{
-                    {offset + 0, normals.size() - 6, uvs.size() - 4},
-                    {offset + 3, normals.size() - 6, uvs.size() - 1},
-                    {offset + 2, normals.size() - 6, uvs.size() - 2},
-                    {offset + 1, normals.size() - 6, uvs.size() - 3}
-            });
-            polygons.add(new int[][]{
-                    {offset + 4, normals.size() - 5, uvs.size() - 4},
-                    {offset + 5, normals.size() - 5, uvs.size() - 3},
-                    {offset + 6, normals.size() - 5, uvs.size() - 2},
-                    {offset + 7, normals.size() - 5, uvs.size() - 1}
-            });
-            polygons.add(new int[][]{
-                    {offset + 0, normals.size() - 4, uvs.size() - 4},
-                    {offset + 1, normals.size() - 4, uvs.size() - 3},
-                    {offset + 5, normals.size() - 4, uvs.size() - 2},
-                    {offset + 4, normals.size() - 4, uvs.size() - 1}
-            });
-            polygons.add(new int[][]{
-                    {offset + 3, normals.size() - 3, uvs.size() - 4},
-                    {offset + 7, normals.size() - 3, uvs.size() - 3},
-                    {offset + 6, normals.size() - 3, uvs.size() - 2},
-                    {offset + 2, normals.size() - 3, uvs.size() - 1}
-            });
-            polygons.add(new int[][]{
-                    {offset + 0, normals.size() - 2, uvs.size() - 4},
-                    {offset + 4, normals.size() - 2, uvs.size() - 3},
-                    {offset + 7, normals.size() - 2, uvs.size() - 2},
-                    {offset + 3, normals.size() - 2, uvs.size() - 1}
-            });
-            polygons.add(new int[][]{
-                    {offset + 1, normals.size() - 1, uvs.size() - 4},
-                    {offset + 2, normals.size() - 1, uvs.size() - 3},
-                    {offset + 6, normals.size() - 1, uvs.size() - 2},
-                    {offset + 5, normals.size() - 1, uvs.size() - 1}
-            });
+            polygons.add(face(offset, normals.size() - 6, uvs.size() - 4, 0, 3, 7, 4));
+            polygons.add(face(offset, normals.size() - 5, uvs.size() - 4, 1, 5, 6, 2));
+            polygons.add(face(offset, normals.size() - 4, uvs.size() - 4, 0, 1, 5, 4));
+            polygons.add(face(offset, normals.size() - 3, uvs.size() - 4, 3, 7, 6, 2));
+            polygons.add(face(offset, normals.size() - 2, uvs.size() - 4, 0, 4, 5, 1));
+            polygons.add(face(offset, normals.size() - 1, uvs.size() - 4, 3, 2, 6, 7));
         }
         if (positions.isEmpty()) {
             return null;
@@ -345,9 +315,9 @@ public class BedrockGeometryParser {
 
     private static float[] transformTextureVertex(float[] vertex, float[] scale, float[] localPivot,
                                                    float[] rotation, float[] position) {
-        float x = vertex[0] * scale[0] + localPivot[0];
-        float y = vertex[1] * scale[1] + localPivot[1];
-        float z = vertex[2] * scale[2] + localPivot[2];
+        float x = (vertex[0] - localPivot[0]) * scale[0];
+        float y = (vertex[1] - localPivot[1]) * scale[1];
+        float z = (vertex[2] - localPivot[2]) * scale[2];
         final double rx = Math.toRadians(rotation[0]);
         final double ry = Math.toRadians(rotation[1]);
         final double rz = Math.toRadians(rotation[2]);
@@ -365,6 +335,16 @@ public class BedrockGeometryParser {
         nextX = x * cos - y * sin;
         nextY = x * sin + y * cos;
         return new float[]{(float) nextX + position[0], (float) nextY + position[1], z + position[2]};
+    }
+
+    private static int[][] face(int offset, int normal, int uvOffset,
+                                int a, int b, int c, int d) {
+        return new int[][]{
+                {offset + a, normal, uvOffset},
+                {offset + b, normal, uvOffset + 1},
+                {offset + c, normal, uvOffset + 2},
+                {offset + d, normal, uvOffset + 3}
+        };
     }
 
     private static float[] transformTextureNormal(float[] normal, float[] rotation) {

@@ -68,8 +68,8 @@ class AttachableParsingTest {
                 {"minecraft:geometry":[{
                   "description":{"identifier":"geometry.sprite","texture_width":16,"texture_height":16},
                   "bones":[{"name":"rightitem","pivot":[0,0,0],"rotation":[0,0,0],
-                    "texture_meshes":[{"texture":"default","local_pivot":[0,0,0],
-                      "position":[2,1,-1],"rotation":[0,-135,90]}]}]
+                    "texture_meshes":[{"texture":"default","local_pivot":[6,0,6],
+                      "position":[2,1,-1],"rotation":[0,0,0]}]}]
                 }]}
                 """);
 
@@ -78,5 +78,9 @@ class AttachableParsingTest {
         assertEquals(8, bone.getPolyMesh().getPositions().length);
         assertEquals(6, bone.getPolyMesh().getPolys().length);
         assertEquals(4, bone.getPolyMesh().getUvs().length);
+
+        float[][] positions = bone.getPolyMesh().getPositions();
+        assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
+        assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
     }
 }
