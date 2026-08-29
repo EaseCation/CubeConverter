@@ -91,6 +91,14 @@ class AttachableParsingTest {
         assertArrayEquals(new int[]{3, 7, 6, 2}, positionIndices(polys[3]));
         assertArrayEquals(new int[]{0, 4, 7, 3}, positionIndices(polys[4]));
         assertArrayEquals(new int[]{1, 2, 6, 5}, positionIndices(polys[5]));
+
+        float[][] normals = bone.getPolyMesh().getNormals();
+        assertArrayEquals(new float[]{0.0F, 0.0F, -1.0F}, normals[0]);
+        assertArrayEquals(new float[]{0.0F, 0.0F, 1.0F}, normals[1]);
+        assertArrayEquals(new float[]{-1.0F, 0.0F, 0.0F}, normals[2]);
+        assertArrayEquals(new float[]{1.0F, 0.0F, 0.0F}, normals[3]);
+        assertArrayEquals(new float[]{0.0F, -1.0F, 0.0F}, normals[4]);
+        assertArrayEquals(new float[]{0.0F, 1.0F, 0.0F}, normals[5]);
     }
 
     private static int[] positionIndices(int[][] polygon) {
