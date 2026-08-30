@@ -261,14 +261,14 @@ public class BedrockGeometryParser {
                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
 
             final int offset = positions.size();
-            // Bedrock texture meshes use the texture rectangle in the positive X/Z plane and
-            // extrude depth along positive Y. The local pivot is an origin inside that rectangle;
-            // applying it as a pre-transform subtraction is required by the vanilla bow geometry.
+            // Bedrock item texture meshes use the same orientation as geometry.item_sprite:
+            // the texture rectangle spans X/Y and the optional pixel depth is along Z. The
+            // local pivot is an origin inside that rectangle; apply it before rotation.
             final float[][] corners = {
-                    {0, 0, 0}, {0, depth, 0},
-                    {textureWidth, depth, 0}, {textureWidth, 0, 0},
-                    {0, 0, textureHeight}, {0, depth, textureHeight},
-                    {textureWidth, depth, textureHeight}, {textureWidth, 0, textureHeight}
+                    {0, 0, 0}, {0, textureHeight, 0},
+                    {textureWidth, textureHeight, 0}, {textureWidth, 0, 0},
+                    {0, 0, depth}, {0, textureHeight, depth},
+                    {textureWidth, textureHeight, depth}, {textureWidth, 0, depth}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);

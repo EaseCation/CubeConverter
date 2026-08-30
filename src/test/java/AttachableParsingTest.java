@@ -83,6 +83,8 @@ class AttachableParsingTest {
         float[][] positions = bone.getPolyMesh().getPositions();
         assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
         assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
+        assertArrayEquals(new float[]{-4.0F, 17.0F, -7.0F}, positions[1]);
+        assertArrayEquals(new float[]{-4.0F, 1.0F, -6.0F}, positions[4]);
 
         int[][][] polys = bone.getPolyMesh().getPolys();
         assertArrayEquals(new int[]{0, 3, 2, 1}, positionIndices(polys[0]));
