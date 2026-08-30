@@ -103,6 +103,26 @@ class AttachableParsingTest {
         assertArrayEquals(uvs[3], uvs[7]);
     }
 
+    @Test
+    void keepsMainAndOffhandTextureMeshesOnTheirDeclaredBones() {
+        List<BedrockGeometryModel> geometries = BedrockGeometryParser.parse("""
+                {"minecraft:geometry":[
+                  {"description":{"identifier":"geometry.main","texture_width":16,"texture_height":16},
+                   "bones":[{"name":"rightitem","texture_meshes":[{"texture":"default"}]}]},
+                  {"description":{"identifier":"geometry.off","texture_width":16,"texture_height":16},
+                   "bones":[{"name":"leftitem","texture_meshes":[{"texture":"default"}]}]}
+                ]}
+                """);
+
+        assertEquals("rightitem", geometries.get(0).getParents().getFirst().getName());
+        assertEquals("leftitem", geometries.get(1).getParents().getFirst().getName());
+        for (BedrockGeometryModel geometry : geometries) {
+            float[][] positions = geometry.getParents().getFirst().getPolyMesh().getPositions();
+            assertEquals(0.0F, positions[0][0]);
+            assertEquals(16.0F, positions[2][0]);
+        }
+    }
+
     private static int[] positionIndices(int[][] polygon) {
         return Arrays.stream(polygon).mapToInt(vertex -> vertex[0]).toArray();
     }
