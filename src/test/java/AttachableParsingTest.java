@@ -83,22 +83,22 @@ class AttachableParsingTest {
         float[][] positions = bone.getPolyMesh().getPositions();
         assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
         assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
-        assertArrayEquals(new float[]{-4.0F, 17.0F, -7.0F}, positions[1]);
-        assertArrayEquals(new float[]{-4.0F, 1.0F, -6.0F}, positions[4]);
+        assertArrayEquals(new float[]{-4.0F, 1.0F, 9.0F}, positions[1]);
+        assertArrayEquals(new float[]{-4.0F, 2.0F, -7.0F}, positions[4]);
 
         int[][][] polys = bone.getPolyMesh().getPolys();
         assertArrayEquals(new int[]{0, 3, 2, 1}, positionIndices(polys[0]));
         assertArrayEquals(new int[]{4, 5, 6, 7}, positionIndices(polys[1]));
 
         float[][] normals = bone.getPolyMesh().getNormals();
-        assertArrayEquals(new float[]{0.0F, 0.0F, -1.0F}, normals[0]);
-        assertArrayEquals(new float[]{0.0F, 0.0F, 1.0F}, normals[1]);
+        assertArrayEquals(new float[]{0.0F, -1.0F, 0.0F}, normals[0]);
+        assertArrayEquals(new float[]{0.0F, 1.0F, 0.0F}, normals[1]);
 
         float[][] uvs = bone.getPolyMesh().getUvs();
-        assertArrayEquals(new float[]{0.0F, 0.0F}, uvs[0]);
-        assertArrayEquals(new float[]{0.0F, 16.0F}, uvs[1]);
-        assertArrayEquals(new float[]{16.0F, 16.0F}, uvs[2]);
-        assertArrayEquals(new float[]{16.0F, 0.0F}, uvs[3]);
+        assertArrayEquals(new float[]{16.0F, 0.0F}, uvs[0]);
+        assertArrayEquals(new float[]{16.0F, 16.0F}, uvs[1]);
+        assertArrayEquals(new float[]{0.0F, 16.0F}, uvs[2]);
+        assertArrayEquals(new float[]{0.0F, 0.0F}, uvs[3]);
         assertArrayEquals(uvs[0], uvs[4]);
         assertArrayEquals(uvs[1], uvs[5]);
         assertArrayEquals(uvs[2], uvs[6]);

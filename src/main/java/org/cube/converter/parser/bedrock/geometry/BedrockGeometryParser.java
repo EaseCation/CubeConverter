@@ -7,6 +7,7 @@ import org.cube.converter.model.element.Cube;
 import org.cube.converter.model.element.Locator;
 import org.cube.converter.model.element.Parent;
 import org.cube.converter.model.element.PolyMesh;
+import org.cube.converter.model.element.TextureMesh;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
 import org.cube.converter.util.GsonUtil;
 import org.cube.converter.util.element.Position2V;
@@ -110,6 +111,20 @@ public class BedrockGeometryParser {
             }
 
             if (boneObject.has("texture_meshes") && boneObject.get("texture_meshes").isJsonArray()) {
+                for (JsonElement textureMeshElement : boneObject.getAsJsonArray("texture_meshes")) {
+                    if (!textureMeshElement.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject textureMeshObject = textureMeshElement.getAsJsonObject();
+                    bone.getTextureMeshes().add(new TextureMesh(
+                            textureMeshObject.has("texture") ? textureMeshObject.get("texture").getAsString() : "default",
+                            new Position3V(vector(textureMeshObject, "local_pivot", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "position", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "rotation", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "scale", 1, 1, 1)),
+                            textureMeshObject.has("use_pixel_depth") && !textureMeshObject.get("use_pixel_depth").getAsBoolean()
+                                    ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F));
+                }
                 final PolyMesh textureMesh = parseTextureMeshes(
                         boneObject.getAsJsonArray("texture_meshes"), textureWidth, textureHeight);
                 if (textureMesh != null) {
@@ -237,11 +252,10 @@ public class BedrockGeometryParser {
     }
 
     /**
-     * Converts the texture-mesh base surfaces into a renderable mesh. Bedrock expands the alpha
-     * channel into voxel side faces at runtime; the converter does not own texture bytes, so it
-     * deliberately emits only the two correctly oriented textured surfaces. Emitting six faces
-     * with the full texture UV rectangle would create the visible compressed-texture border on
-     * every sword/bow when viewed from an angle.
+     * Converts a Bedrock texture mesh into the thin voxelized sprite shape used by attachables.
+     * Texture meshes lie in X/Z and use Y for their one-pixel depth. The converter does not own
+     * decoded texture alpha here, so the four depth faces use one-pixel edge strips rather than
+     * mapping the complete sprite onto each side (which visibly compresses swords and bows).
      */
     private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight) {
         final List<float[]> positions = new ArrayList<>();
@@ -261,14 +275,13 @@ public class BedrockGeometryParser {
                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
 
             final int offset = positions.size();
-            // Bedrock item texture meshes use the same orientation as geometry.item_sprite:
-            // the texture rectangle spans X/Y and the optional pixel depth is along Z. The
-            // local pivot is an origin inside that rectangle; apply it before rotation.
+            // Bedrock texture meshes use the texture rectangle in X/Z and extrude along Y.
+            // local_pivot is a point in texture space, subtracted before the declared rotation.
             final float[][] corners = {
-                    {0, 0, 0}, {0, textureHeight, 0},
-                    {textureWidth, textureHeight, 0}, {textureWidth, 0, 0},
-                    {0, 0, depth}, {0, textureHeight, depth},
-                    {textureWidth, textureHeight, depth}, {textureWidth, 0, depth}
+                    {0, 0, 0}, {0, 0, textureHeight},
+                    {textureWidth, 0, textureHeight}, {textureWidth, 0, 0},
+                    {0, depth, 0}, {0, depth, textureHeight},
+                    {textureWidth, depth, textureHeight}, {textureWidth, depth, 0}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
@@ -276,25 +289,28 @@ public class BedrockGeometryParser {
             }
 
             // Normals are kept in Bedrock space and converted to Java space by GeometryUtil.
+            // The raw Bedrock sprite has a front face at y=0 (normal -Y) and a back face at
+            // the one-pixel depth (normal +Y). Its winding must agree with those normals.
             final float[][] faceNormals = {
-                    {0, 0, -1}, {0, 0, 1}
+                    {0, -1, 0}, {0, 1, 0}
             };
             for (float[] normal : faceNormals) {
                 normals.add(transformTextureNormal(normal, rotation));
             }
+            // Bedrock/Blockbench maps the complete sprite only to the two broad surfaces. The
+            // alpha-derived voxel boundary is deliberately not fabricated here: CubeConverter
+            // does not own the selected attachable texture bytes.
             final int[][] faceUvs = {
-                    {0, 0}, {0, textureHeight},
-                    {textureWidth, textureHeight}, {textureWidth, 0},
-                    {0, 0}, {0, textureHeight},
-                    {textureWidth, textureHeight}, {textureWidth, 0}
+                    {textureWidth, 0}, {textureWidth, textureHeight},
+                    {0, textureHeight}, {0, 0},
+                    {textureWidth, 0}, {textureWidth, textureHeight},
+                    {0, textureHeight}, {0, 0}
             };
             for (int[] uv : faceUvs) {
                 uvs.add(new float[]{uv[0], uv[1]});
             }
 
-            // Keep only the two textured surfaces. Bedrock voxelizes alpha into side faces;
-            // duplicating the full texture on all four sides creates compressed edge sprites.
-            final int uvStart = uvs.size() - 8;
+            final int uvStart = uvs.size() - faceUvs.length;
             polygons.add(face(offset, normals.size() - 2, uvStart, 0, 3, 2, 1));
             polygons.add(face(offset, normals.size() - 1, uvStart + 4, 4, 5, 6, 7));
         }
