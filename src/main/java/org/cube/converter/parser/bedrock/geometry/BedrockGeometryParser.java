@@ -7,6 +7,7 @@ import org.cube.converter.model.element.Cube;
 import org.cube.converter.model.element.Locator;
 import org.cube.converter.model.element.Parent;
 import org.cube.converter.model.element.PolyMesh;
+import org.cube.converter.model.element.TextureMesh;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
 import org.cube.converter.util.GsonUtil;
 import org.cube.converter.util.element.Position2V;
@@ -107,6 +108,26 @@ public class BedrockGeometryParser {
 
             if (boneObject.has("poly_mesh")) {
                 bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
+            }
+
+            if (boneObject.has("texture_meshes") && boneObject.get("texture_meshes").isJsonArray()) {
+                for (JsonElement textureMeshElement : boneObject.getAsJsonArray("texture_meshes")) {
+                    if (!textureMeshElement.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject textureMeshObject = textureMeshElement.getAsJsonObject();
+                    bone.getTextureMeshes().add(new TextureMesh(
+                            textureMeshObject.has("texture") ? textureMeshObject.get("texture").getAsString() : "default",
+                            new Position3V(vector(textureMeshObject, "local_pivot", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "position", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "rotation", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "scale", 1, 1, 1)),
+                            textureMeshObject.has("use_pixel_depth") && !textureMeshObject.get("use_pixel_depth").getAsBoolean()
+                                    ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F));
+                }
+                // Keep texture_meshes separate: Bedrock builds their alpha voxel sides from the
+                // selected attachable texture at render time. Merging them into poly_mesh loses
+                // that contract and makes ordinary geometry consumers reinterpret their space.
             }
 
             if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
@@ -227,4 +248,27 @@ public class BedrockGeometryParser {
 
         return new PolyMesh(normalizedUvs, positions, normals, uvs, polys);
     }
+
+    private static float[] vector(JsonObject object, String name, float x, float y, float z) {
+        if (!object.has(name) || !object.get(name).isJsonArray()) {
+            return new float[]{x, y, z};
+        }
+        final JsonArray values = object.getAsJsonArray(name);
+        return new float[]{
+                values.size() > 0 ? values.get(0).getAsFloat() : x,
+                values.size() > 1 ? values.get(1).getAsFloat() : y,
+                values.size() > 2 ? values.get(2).getAsFloat() : z
+        };
+    }
+
+    private static int[][] face(int offset, int normal, int uvOffset,
+                                int a, int b, int c, int d) {
+        return new int[][]{
+                {offset + a, normal, uvOffset},
+                {offset + b, normal, uvOffset + 1},
+                {offset + c, normal, uvOffset + 2},
+                {offset + d, normal, uvOffset + 3}
+        };
+    }
+
 }

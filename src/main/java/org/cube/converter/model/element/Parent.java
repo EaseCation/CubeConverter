@@ -8,6 +8,8 @@ import lombok.ToString;
 import org.cube.converter.util.element.Position3V;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class Parent {
 
     private final Map<Integer, Cube> cubes = new HashMap<>();
     private final Map<String, Locator> locators = new HashMap<>();
+    private final List<TextureMesh> textureMeshes = new ArrayList<>();
     private PolyMesh polyMesh = null;
 
     @Override
@@ -35,6 +38,9 @@ public class Parent {
         }
         for (final Map.Entry<String, Locator> entry : this.locators.entrySet()) {
             parent.locators.put(entry.getKey(), entry.getValue().clone());
+        }
+        for (TextureMesh textureMesh : this.textureMeshes) {
+            parent.textureMeshes.add(textureMesh.clone());
         }
         parent.setParent(this.parent);
         parent.setBinding(this.binding);

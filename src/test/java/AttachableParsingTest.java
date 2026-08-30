@@ -5,6 +5,7 @@ import org.cube.converter.parser.bedrock.data.BedrockDataParser;
 import org.cube.converter.parser.bedrock.geometry.BedrockGeometryParser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,5 +61,27 @@ class AttachableParsingTest {
         Parent differentBinding = new Parent(bone.getName(), bone.getPivot(), bone.getRotation());
         differentBinding.setBinding("rightitem");
         assertNotEquals(bone, differentBinding);
+    }
+
+    @Test
+    void preservesTextureMeshesForRuntimeSpriteGeneration() {
+        List<BedrockGeometryModel> geometries = BedrockGeometryParser.parse("""
+                {"minecraft:geometry":[{
+                  "description":{"identifier":"geometry.sprite","texture_width":16,"texture_height":16},
+                  "bones":[{"name":"rightitem","pivot":[0,0,0],"rotation":[0,0,0],
+                    "texture_meshes":[{"texture":"default","local_pivot":[6,0,6],
+                      "position":[2,1,-1],"rotation":[0,0,0]}]}]
+                }]}
+                """);
+
+        Parent bone = geometries.getFirst().getParents().getFirst();
+        assertNull(bone.getPolyMesh());
+        assertEquals(1, bone.getTextureMeshes().size());
+        assertEquals("default", bone.getTextureMeshes().getFirst().getTexture());
+        assertEquals(1.0F, bone.getTextureMeshes().getFirst().getDepth());
+    }
+
+    private static int[] positionIndices(int[][] polygon) {
+        return Arrays.stream(polygon).mapToInt(vertex -> vertex[0]).toArray();
     }
 }
