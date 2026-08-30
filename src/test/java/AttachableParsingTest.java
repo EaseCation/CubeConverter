@@ -77,28 +77,30 @@ class AttachableParsingTest {
         Parent bone = geometries.getFirst().getParents().getFirst();
         assertNotNull(bone.getPolyMesh());
         assertEquals(8, bone.getPolyMesh().getPositions().length);
-        assertEquals(6, bone.getPolyMesh().getPolys().length);
-        assertEquals(4, bone.getPolyMesh().getUvs().length);
+        assertEquals(2, bone.getPolyMesh().getPolys().length);
+        assertEquals(8, bone.getPolyMesh().getUvs().length);
 
         float[][] positions = bone.getPolyMesh().getPositions();
-        assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
-        assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
+        assertArrayEquals(new float[]{-8.0F, 1.0F, 5.0F}, positions[0]);
+        assertArrayEquals(new float[]{8.0F, 1.0F, 5.0F}, positions[3]);
 
         int[][][] polys = bone.getPolyMesh().getPolys();
-        assertArrayEquals(new int[]{0, 3, 2, 1}, positionIndices(polys[0]));
-        assertArrayEquals(new int[]{4, 5, 6, 7}, positionIndices(polys[1]));
-        assertArrayEquals(new int[]{0, 1, 5, 4}, positionIndices(polys[2]));
-        assertArrayEquals(new int[]{3, 7, 6, 2}, positionIndices(polys[3]));
-        assertArrayEquals(new int[]{0, 4, 7, 3}, positionIndices(polys[4]));
-        assertArrayEquals(new int[]{1, 2, 6, 5}, positionIndices(polys[5]));
+        assertArrayEquals(new int[]{0, 1, 2, 3}, positionIndices(polys[0]));
+        assertArrayEquals(new int[]{4, 6, 5, 7}, positionIndices(polys[1]));
 
         float[][] normals = bone.getPolyMesh().getNormals();
-        assertArrayEquals(new float[]{0.0F, 0.0F, -1.0F}, normals[0]);
-        assertArrayEquals(new float[]{0.0F, 0.0F, 1.0F}, normals[1]);
-        assertArrayEquals(new float[]{-1.0F, 0.0F, 0.0F}, normals[2]);
-        assertArrayEquals(new float[]{1.0F, 0.0F, 0.0F}, normals[3]);
-        assertArrayEquals(new float[]{0.0F, -1.0F, 0.0F}, normals[4]);
-        assertArrayEquals(new float[]{0.0F, 1.0F, 0.0F}, normals[5]);
+        assertArrayEquals(new float[]{0.0F, 1.0F, 0.0F}, normals[0]);
+        assertArrayEquals(new float[]{0.0F, -1.0F, 0.0F}, normals[1]);
+
+        float[][] uvs = bone.getPolyMesh().getUvs();
+        assertArrayEquals(new float[]{16.0F, 0.0F}, uvs[0]);
+        assertArrayEquals(new float[]{16.0F, 16.0F}, uvs[1]);
+        assertArrayEquals(new float[]{0.0F, 16.0F}, uvs[2]);
+        assertArrayEquals(new float[]{0.0F, 0.0F}, uvs[3]);
+        assertArrayEquals(uvs[0], uvs[4]);
+        assertArrayEquals(uvs[1], uvs[5]);
+        assertArrayEquals(uvs[2], uvs[6]);
+        assertArrayEquals(uvs[3], uvs[7]);
     }
 
     private static int[] positionIndices(int[][] polygon) {

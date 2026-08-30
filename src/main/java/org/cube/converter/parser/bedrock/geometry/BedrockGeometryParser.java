@@ -237,10 +237,11 @@ public class BedrockGeometryParser {
     }
 
     /**
-     * Converts Bedrock texture meshes into a thin voxelized sprite mesh. The Bedrock runtime builds
-     * these meshes from the referenced texture's alpha channel; retaining the full textured plane
-     * here preserves the same transparent silhouette under Java's alpha-test render type while
-     * keeping the geometry independent from pack texture lifetime.
+     * Converts the texture-mesh base surfaces into a renderable mesh. Bedrock expands the alpha
+     * channel into voxel side faces at runtime; the converter does not own texture bytes, so it
+     * deliberately emits only the two correctly oriented textured surfaces. Emitting six faces
+     * with the full texture UV rectangle would create the visible compressed-texture border on
+     * every sword/bow when viewed from an angle.
      */
     private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight) {
         final List<float[]> positions = new ArrayList<>();
@@ -260,40 +261,46 @@ public class BedrockGeometryParser {
                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
 
             final int offset = positions.size();
+            // Bedrock/Blockbench texture meshes span -texture_width..0 on X and have their
+            // one-pixel thickness on the negative Y side. This is the item-bone basis used by
+            // vanilla sword/bow attachables; using 0..width mirrors the item across the hand.
             final float[][] corners = {
-                    {0, 0, 0}, {0, depth, 0},
-                    {textureWidth, depth, 0}, {textureWidth, 0, 0},
-                    {0, 0, textureHeight}, {0, depth, textureHeight},
-                    {textureWidth, depth, textureHeight}, {textureWidth, 0, textureHeight}
+                    {-textureWidth, 0, 0}, {-textureWidth, 0, textureHeight},
+                    {0, 0, textureHeight}, {0, 0, 0},
+                    {-textureWidth, -depth, 0}, {-textureWidth, -depth, textureHeight},
+                    {0, -depth, textureHeight}, {0, -depth, 0}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
                 positions.add(transformed);
             }
 
-            // The vertex order below is expressed in the positive-width/depth layout above.
             // Normals are kept in Bedrock space and converted to Java space by GeometryUtil.
             final float[][] faceNormals = {
-                    {0, 0, -1}, {0, 0, 1}, {-1, 0, 0},
-                    {1, 0, 0}, {0, -1, 0}, {0, 1, 0}
+                    {0, 1, 0}, {0, -1, 0}
             };
             for (float[] normal : faceNormals) {
                 normals.add(transformTextureNormal(normal, rotation));
             }
+            // Blockbench stores the texture mesh UVs as [1,1, 1,0, 0,0, 0,1]. In
+            // pixel-space that is right/top, right/bottom, left/bottom, left/top.
+            // Keep this orientation so GeometryUtil's Bedrock-to-Java conversion does
+            // not mirror the sprite across the item bone.
             final int[][] faceUvs = {
-                    {0, 0}, {0, textureHeight}, {textureWidth, textureHeight}, {textureWidth, 0}
+                    {textureWidth, 0}, {textureWidth, textureHeight},
+                    {0, textureHeight}, {0, 0},
+                    {textureWidth, 0}, {textureWidth, textureHeight},
+                    {0, textureHeight}, {0, 0}
             };
             for (int[] uv : faceUvs) {
                 uvs.add(new float[]{uv[0], uv[1]});
             }
 
-            // Winding follows ModelPart's quad convention. Each entry is [position, normal, uv].
-            polygons.add(face(offset, normals.size() - 6, uvs.size() - 4, 0, 3, 2, 1)); // z = 0
-            polygons.add(face(offset, normals.size() - 5, uvs.size() - 4, 4, 5, 6, 7)); // z = height
-            polygons.add(face(offset, normals.size() - 4, uvs.size() - 4, 0, 1, 5, 4)); // x = 0
-            polygons.add(face(offset, normals.size() - 3, uvs.size() - 4, 3, 7, 6, 2)); // x = width
-            polygons.add(face(offset, normals.size() - 2, uvs.size() - 4, 0, 4, 7, 3)); // y = 0
-            polygons.add(face(offset, normals.size() - 1, uvs.size() - 4, 1, 2, 6, 5)); // y = depth
+            // The back surface reverses winding and uses its own copy of the UV table,
+            // matching Blockbench's second four vertices.
+            final int uvStart = uvs.size() - 8;
+            polygons.add(face(offset, normals.size() - 2, uvStart, 0, 1, 2, 3));
+            polygons.add(face(offset, normals.size() - 1, uvStart + 4, 4, 6, 5, 7));
         }
         if (positions.isEmpty()) {
             return null;
@@ -317,9 +324,11 @@ public class BedrockGeometryParser {
 
     private static float[] transformTextureVertex(float[] vertex, float[] scale, float[] localPivot,
                                                    float[] rotation, float[] position) {
-        float x = (vertex[0] - localPivot[0]) * scale[0];
-        float y = (vertex[1] - localPivot[1]) * scale[1];
-        float z = (vertex[2] - localPivot[2]) * scale[2];
+        // Blockbench applies scale first and then adds local_pivot. Treating the
+        // pivot as a pre-transform origin mirrors item sprites around rightitem.
+        float x = vertex[0] * scale[0] + localPivot[0];
+        float y = vertex[1] * scale[1] + localPivot[1];
+        float z = vertex[2] * scale[2] + localPivot[2];
         final double rx = Math.toRadians(rotation[0]);
         final double ry = Math.toRadians(rotation[1]);
         final double rz = Math.toRadians(rotation[2]);
