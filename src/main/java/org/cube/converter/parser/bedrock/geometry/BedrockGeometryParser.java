@@ -261,14 +261,14 @@ public class BedrockGeometryParser {
                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
 
             final int offset = positions.size();
-            // Bedrock/Blockbench texture meshes span -texture_width..0 on X and extrude one
-            // pixel toward negative Y. This is the item-bone basis used by the vanilla sword and
-            // bow attachables; using 0..width mirrors the sprite across the hand anchor.
+            // After the Bedrock-to-Java model bridge, handheld texture meshes span from the
+            // item-bone anchor toward positive X and use the negative-Y side for their one-pixel
+            // thickness. A negative-X rectangle mirrors the whole sprite across the hand anchor.
             final float[][] corners = {
-                    {-textureWidth, 0, 0}, {-textureWidth, 0, textureHeight},
-                    {0, 0, textureHeight}, {0, 0, 0},
-                    {-textureWidth, -depth, 0}, {-textureWidth, -depth, textureHeight},
-                    {0, -depth, textureHeight}, {0, -depth, 0}
+                    {0, 0, 0}, {0, 0, textureHeight},
+                    {textureWidth, 0, textureHeight}, {textureWidth, 0, 0},
+                    {0, -depth, 0}, {0, -depth, textureHeight},
+                    {textureWidth, -depth, textureHeight}, {textureWidth, -depth, 0}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
