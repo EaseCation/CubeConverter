@@ -64,7 +64,7 @@ class AttachableParsingTest {
     }
 
     @Test
-    void convertsTextureMeshesToRenderablePolyMesh() {
+    void preservesTextureMeshesForRuntimeSpriteGeneration() {
         List<BedrockGeometryModel> geometries = BedrockGeometryParser.parse("""
                 {"minecraft:geometry":[{
                   "description":{"identifier":"geometry.sprite","texture_width":16,"texture_height":16},
@@ -75,34 +75,10 @@ class AttachableParsingTest {
                 """);
 
         Parent bone = geometries.getFirst().getParents().getFirst();
-        assertNotNull(bone.getPolyMesh());
-        assertEquals(8, bone.getPolyMesh().getPositions().length);
-        assertEquals(2, bone.getPolyMesh().getPolys().length);
-        assertEquals(8, bone.getPolyMesh().getUvs().length);
-
-        float[][] positions = bone.getPolyMesh().getPositions();
-        assertArrayEquals(new float[]{-4.0F, 1.0F, -7.0F}, positions[0]);
-        assertArrayEquals(new float[]{12.0F, 1.0F, -7.0F}, positions[3]);
-        assertArrayEquals(new float[]{-4.0F, 1.0F, 9.0F}, positions[1]);
-        assertArrayEquals(new float[]{-4.0F, 2.0F, -7.0F}, positions[4]);
-
-        int[][][] polys = bone.getPolyMesh().getPolys();
-        assertArrayEquals(new int[]{0, 3, 2, 1}, positionIndices(polys[0]));
-        assertArrayEquals(new int[]{4, 5, 6, 7}, positionIndices(polys[1]));
-
-        float[][] normals = bone.getPolyMesh().getNormals();
-        assertArrayEquals(new float[]{0.0F, -1.0F, 0.0F}, normals[0]);
-        assertArrayEquals(new float[]{0.0F, 1.0F, 0.0F}, normals[1]);
-
-        float[][] uvs = bone.getPolyMesh().getUvs();
-        assertArrayEquals(new float[]{16.0F, 0.0F}, uvs[0]);
-        assertArrayEquals(new float[]{16.0F, 16.0F}, uvs[1]);
-        assertArrayEquals(new float[]{0.0F, 16.0F}, uvs[2]);
-        assertArrayEquals(new float[]{0.0F, 0.0F}, uvs[3]);
-        assertArrayEquals(uvs[0], uvs[4]);
-        assertArrayEquals(uvs[1], uvs[5]);
-        assertArrayEquals(uvs[2], uvs[6]);
-        assertArrayEquals(uvs[3], uvs[7]);
+        assertNull(bone.getPolyMesh());
+        assertEquals(1, bone.getTextureMeshes().size());
+        assertEquals("default", bone.getTextureMeshes().getFirst().getTexture());
+        assertEquals(1.0F, bone.getTextureMeshes().getFirst().getDepth());
     }
 
     private static int[] positionIndices(int[][] polygon) {

@@ -125,11 +125,9 @@ public class BedrockGeometryParser {
                             textureMeshObject.has("use_pixel_depth") && !textureMeshObject.get("use_pixel_depth").getAsBoolean()
                                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F));
                 }
-                final PolyMesh textureMesh = parseTextureMeshes(
-                        boneObject.getAsJsonArray("texture_meshes"), textureWidth, textureHeight);
-                if (textureMesh != null) {
-                    bone.setPolyMesh(mergePolyMeshes(bone.getPolyMesh(), textureMesh));
-                }
+                // Keep texture_meshes separate: Bedrock builds their alpha voxel sides from the
+                // selected attachable texture at render time. Merging them into poly_mesh loses
+                // that contract and makes ordinary geometry consumers reinterpret their space.
             }
 
             if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
@@ -251,77 +249,6 @@ public class BedrockGeometryParser {
         return new PolyMesh(normalizedUvs, positions, normals, uvs, polys);
     }
 
-    /**
-     * Converts a Bedrock texture mesh into the thin voxelized sprite shape used by attachables.
-     * Texture meshes lie in X/Z and use Y for their one-pixel depth. The converter does not own
-     * decoded texture alpha here, so the four depth faces use one-pixel edge strips rather than
-     * mapping the complete sprite onto each side (which visibly compresses swords and bows).
-     */
-    private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight) {
-        final List<float[]> positions = new ArrayList<>();
-        final List<float[]> normals = new ArrayList<>();
-        final List<float[]> uvs = new ArrayList<>();
-        final List<int[][]> polygons = new ArrayList<>();
-        for (JsonElement element : textureMeshes) {
-            if (!element.isJsonObject()) {
-                continue;
-            }
-            final JsonObject mesh = element.getAsJsonObject();
-            final float[] localPivot = vector(mesh, "local_pivot", 0, 0, 0);
-            final float[] position = vector(mesh, "position", 0, 0, 0);
-            final float[] rotation = vector(mesh, "rotation", 0, 0, 0);
-            final float[] scale = vector(mesh, "scale", 1, 1, 1);
-            final float depth = mesh.has("use_pixel_depth") && !mesh.get("use_pixel_depth").getAsBoolean()
-                    ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
-
-            final int offset = positions.size();
-            // Bedrock texture meshes use the texture rectangle in X/Z and extrude along Y.
-            // local_pivot is a point in texture space, subtracted before the declared rotation.
-            final float[][] corners = {
-                    {0, 0, 0}, {0, 0, textureHeight},
-                    {textureWidth, 0, textureHeight}, {textureWidth, 0, 0},
-                    {0, depth, 0}, {0, depth, textureHeight},
-                    {textureWidth, depth, textureHeight}, {textureWidth, depth, 0}
-            };
-            for (float[] corner : corners) {
-                final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);
-                positions.add(transformed);
-            }
-
-            // Normals are kept in Bedrock space and converted to Java space by GeometryUtil.
-            // The raw Bedrock sprite has a front face at y=0 (normal -Y) and a back face at
-            // the one-pixel depth (normal +Y). Its winding must agree with those normals.
-            final float[][] faceNormals = {
-                    {0, -1, 0}, {0, 1, 0}
-            };
-            for (float[] normal : faceNormals) {
-                normals.add(transformTextureNormal(normal, rotation));
-            }
-            // Bedrock/Blockbench maps the complete sprite only to the two broad surfaces. The
-            // alpha-derived voxel boundary is deliberately not fabricated here: CubeConverter
-            // does not own the selected attachable texture bytes.
-            final int[][] faceUvs = {
-                    {textureWidth, 0}, {textureWidth, textureHeight},
-                    {0, textureHeight}, {0, 0},
-                    {textureWidth, 0}, {textureWidth, textureHeight},
-                    {0, textureHeight}, {0, 0}
-            };
-            for (int[] uv : faceUvs) {
-                uvs.add(new float[]{uv[0], uv[1]});
-            }
-
-            final int uvStart = uvs.size() - faceUvs.length;
-            polygons.add(face(offset, normals.size() - 2, uvStart, 0, 3, 2, 1));
-            polygons.add(face(offset, normals.size() - 1, uvStart + 4, 4, 5, 6, 7));
-        }
-        if (positions.isEmpty()) {
-            return null;
-        }
-        return new PolyMesh(false,
-                positions.toArray(float[][]::new), normals.toArray(float[][]::new),
-                uvs.toArray(float[][]::new), polygons.toArray(int[][][]::new));
-    }
-
     private static float[] vector(JsonObject object, String name, float x, float y, float z) {
         if (!object.has(name) || !object.get(name).isJsonArray()) {
             return new float[]{x, y, z};
@@ -334,30 +261,6 @@ public class BedrockGeometryParser {
         };
     }
 
-    private static float[] transformTextureVertex(float[] vertex, float[] scale, float[] localPivot,
-                                                   float[] rotation, float[] position) {
-        float x = (vertex[0] - localPivot[0]) * scale[0];
-        float y = (vertex[1] - localPivot[1]) * scale[1];
-        float z = (vertex[2] - localPivot[2]) * scale[2];
-        final double rx = Math.toRadians(rotation[0]);
-        final double ry = Math.toRadians(rotation[1]);
-        final double rz = Math.toRadians(rotation[2]);
-        double cos = Math.cos(rx), sin = Math.sin(rx);
-        double nextY = y * cos - z * sin;
-        double nextZ = y * sin + z * cos;
-        y = (float) nextY;
-        z = (float) nextZ;
-        cos = Math.cos(ry); sin = Math.sin(ry);
-        double nextX = x * cos + z * sin;
-        nextZ = -x * sin + z * cos;
-        x = (float) nextX;
-        z = (float) nextZ;
-        cos = Math.cos(rz); sin = Math.sin(rz);
-        nextX = x * cos - y * sin;
-        nextY = x * sin + y * cos;
-        return new float[]{(float) nextX + position[0], (float) nextY + position[1], z + position[2]};
-    }
-
     private static int[][] face(int offset, int normal, int uvOffset,
                                 int a, int b, int c, int d) {
         return new int[][]{
@@ -368,36 +271,4 @@ public class BedrockGeometryParser {
         };
     }
 
-    private static float[] transformTextureNormal(float[] normal, float[] rotation) {
-        return transformTextureVertex(normal, new float[]{1, 1, 1}, new float[]{0, 0, 0}, rotation,
-                new float[]{0, 0, 0});
-    }
-
-    private static PolyMesh mergePolyMeshes(PolyMesh first, PolyMesh second) {
-        if (first == null) {
-            return second;
-        }
-        final List<float[]> positions = new ArrayList<>(List.of(first.getPositions()));
-        final List<float[]> normals = new ArrayList<>(List.of(first.getNormals()));
-        final List<float[]> uvs = new ArrayList<>(List.of(first.getUvs()));
-        final List<int[][]> polygons = new ArrayList<>(List.of(first.getPolys()));
-        final int positionOffset = positions.size();
-        final int normalOffset = normals.size();
-        final int uvOffset = uvs.size();
-        positions.addAll(List.of(second.getPositions()));
-        normals.addAll(List.of(second.getNormals()));
-        uvs.addAll(List.of(second.getUvs()));
-        for (int[][] polygon : second.getPolys()) {
-            final int[][] copy = new int[polygon.length][3];
-            for (int i = 0; i < polygon.length; i++) {
-                copy[i][0] = polygon[i][0] + positionOffset;
-                copy[i][1] = polygon[i][1] + normalOffset;
-                copy[i][2] = polygon[i][2] + uvOffset;
-            }
-            polygons.add(copy);
-        }
-        return new PolyMesh(first.isNormalizedUvs(), positions.toArray(float[][]::new),
-                normals.toArray(float[][]::new), uvs.toArray(float[][]::new),
-                polygons.toArray(int[][][]::new));
-    }
 }
