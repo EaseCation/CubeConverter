@@ -111,7 +111,7 @@ public class BedrockGeometryParser {
 
             if (boneObject.has("texture_meshes") && boneObject.get("texture_meshes").isJsonArray()) {
                 final PolyMesh textureMesh = parseTextureMeshes(
-                        boneObject.getAsJsonArray("texture_meshes"), textureWidth, textureHeight);
+                        boneObject.getAsJsonArray("texture_meshes"), textureWidth, textureHeight, name);
                 if (textureMesh != null) {
                     bone.setPolyMesh(mergePolyMeshes(bone.getPolyMesh(), textureMesh));
                 }
@@ -243,7 +243,8 @@ public class BedrockGeometryParser {
      * with the full texture UV rectangle would create the visible compressed-texture border on
      * every sword/bow when viewed from an angle.
      */
-    private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight) {
+    private static PolyMesh parseTextureMeshes(JsonArray textureMeshes, int textureWidth, int textureHeight,
+                                               String boneName) {
         final List<float[]> positions = new ArrayList<>();
         final List<float[]> normals = new ArrayList<>();
         final List<float[]> uvs = new ArrayList<>();
@@ -261,14 +262,19 @@ public class BedrockGeometryParser {
                     ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F;
 
             final int offset = positions.size();
-            // After the Bedrock-to-Java model bridge, handheld texture meshes span from the
-            // item-bone anchor toward positive X and use the negative-Y side for their one-pixel
-            // thickness. A negative-X rectangle mirrors the whole sprite across the hand anchor.
+            // Bedrock item sprites are anchored at the hand-side edge: rightitem extends toward
+            // negative X and leftitem toward positive X. Keeping this side basis is essential
+            // after the Bedrock-to-Java bridge; using one direction for both bones moves one hand
+            // across the player's body. Non-hand texture meshes retain the canonical positive-X
+            // basis used by the geometry format.
+            final boolean rightHand = "rightitem".equalsIgnoreCase(boneName)
+                    || "right_item".equalsIgnoreCase(boneName);
+            final float side = rightHand ? -1.0F : 1.0F;
             final float[][] corners = {
                     {0, 0, 0}, {0, 0, textureHeight},
-                    {textureWidth, 0, textureHeight}, {textureWidth, 0, 0},
+                    {side * textureWidth, 0, textureHeight}, {side * textureWidth, 0, 0},
                     {0, -depth, 0}, {0, -depth, textureHeight},
-                    {textureWidth, -depth, textureHeight}, {textureWidth, -depth, 0}
+                    {side * textureWidth, -depth, textureHeight}, {side * textureWidth, -depth, 0}
             };
             for (float[] corner : corners) {
                 final float[] transformed = transformTextureVertex(corner, scale, localPivot, rotation, position);

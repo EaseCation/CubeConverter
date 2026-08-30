@@ -82,7 +82,7 @@ class AttachableParsingTest {
 
         float[][] positions = bone.getPolyMesh().getPositions();
         assertArrayEquals(new float[]{8.0F, 1.0F, 5.0F}, positions[0]);
-        assertArrayEquals(new float[]{24.0F, 1.0F, 5.0F}, positions[3]);
+        assertArrayEquals(new float[]{-8.0F, 1.0F, 5.0F}, positions[3]);
 
         int[][][] polys = bone.getPolyMesh().getPolys();
         assertArrayEquals(new int[]{0, 1, 2, 3}, positionIndices(polys[0]));
@@ -119,7 +119,8 @@ class AttachableParsingTest {
         for (BedrockGeometryModel geometry : geometries) {
             float[][] positions = geometry.getParents().getFirst().getPolyMesh().getPositions();
             assertEquals(0.0F, positions[0][0]);
-            assertEquals(16.0F, positions[2][0]);
+            assertEquals(geometry.getParents().getFirst().getName().equals("rightitem") ? -16.0F : 16.0F,
+                    positions[2][0]);
         }
     }
 
