@@ -15,7 +15,17 @@ public record BedrockRenderController(String identifier, Map<String, String> mat
                                       String geometryExpression, List<String> textureExpressions,
                                       List<Array> materials, List<Array> textures, List<Array> geometries,
                                       Map<String, String> partVisibility,
+                                      Map<String, String> colorExpressions,
                                       boolean ignoreLighting, float lightColorMultiplier) {
+    public BedrockRenderController(String identifier, Map<String, String> materialsMap,
+                                   String geometryExpression, List<String> textureExpressions,
+                                   List<Array> materials, List<Array> textures, List<Array> geometries,
+                                   Map<String, String> partVisibility,
+                                   boolean ignoreLighting, float lightColorMultiplier) {
+        this(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures,
+                geometries, partVisibility, Map.of(), ignoreLighting, lightColorMultiplier);
+    }
+
     public record Array(String name, List<String> values) {
         public static List<Array> parse(final JsonObject object) {
             if (object == null) {

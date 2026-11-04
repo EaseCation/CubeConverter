@@ -7,6 +7,7 @@ import org.cube.converter.model.element.Cube;
 import org.cube.converter.model.element.Locator;
 import org.cube.converter.model.element.Parent;
 import org.cube.converter.model.element.PolyMesh;
+import org.cube.converter.model.element.TextureMesh;
 import org.cube.converter.model.impl.bedrock.BedrockGeometryModel;
 import org.cube.converter.util.GsonUtil;
 import org.cube.converter.util.element.Position2V;
@@ -24,6 +25,7 @@ public class BedrockGeometryParser {
 
     public static List<BedrockGeometryModel> parse(JsonObject json) {
         final List<BedrockGeometryModel> geometries = new ArrayList<>();
+        final boolean supportsBinding = supportsBinding(json);
 
         if (json.has("minecraft:geometry")) {
             final JsonElement element = json.get("minecraft:geometry");
@@ -38,7 +40,7 @@ public class BedrockGeometryParser {
                 }
                 JsonObject object = element1.getAsJsonObject();
 
-                final BedrockGeometryModel geometry = getGeometry(object, "minecraft:geometry", "texture_width", "texture_height");
+                final BedrockGeometryModel geometry = getGeometry(object, "minecraft:geometry", "texture_width", "texture_height", supportsBinding);
                 if (geometry == null) {
                     continue;
                 }
@@ -55,7 +57,7 @@ public class BedrockGeometryParser {
             if (!object.has("texturewidth")) {
                 continue;
             }
-            final BedrockGeometryModel geometry = getGeometry(object, elementName, "texturewidth", "textureheight");
+            final BedrockGeometryModel geometry = getGeometry(object, elementName, "texturewidth", "textureheight", false);
             if (geometry == null) {
                 continue;
             }
@@ -65,7 +67,27 @@ public class BedrockGeometryParser {
         return geometries;
     }
 
-    private static BedrockGeometryModel getGeometry(JsonObject geometry, String elementName, String textureWidthName, String textureHeightName) {
+    /** Explicit actor-bone bindings were added to the 1.16 geometry format. Older geometry ignores
+     * this member; accepting it there changes the attachment's entire coordinate frame. */
+    private static boolean supportsBinding(JsonObject document) {
+        if (!document.has("format_version")) return false;
+        final String[] version = document.get("format_version").getAsString().split("\\.");
+        if (version.length < 2 || version.length > 3) {
+            throw new IllegalArgumentException("Invalid geometry format_version");
+        }
+        try {
+            final int major = Integer.parseInt(version[0]);
+            final int minor = Integer.parseInt(version[1]);
+            final int patch = version.length == 3 ? Integer.parseInt(version[2]) : 0;
+            if (major < 0 || minor < 0 || patch < 0) throw new NumberFormatException();
+            return major > 1 || major == 1 && minor >= 16;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException("Invalid geometry format_version", error);
+        }
+    }
+
+    private static BedrockGeometryModel getGeometry(JsonObject geometry, String elementName, String textureWidthName, String textureHeightName,
+                                                    boolean supportsBinding) {
         JsonObject description = geometry.has("description") ? geometry.getAsJsonObject("description") : geometry;
         String identifier = description.has("identifier") ? description.get("identifier").getAsString() : elementName;
 
@@ -98,8 +120,35 @@ public class BedrockGeometryParser {
                 bone.setParent(boneObject.get("parent").getAsString());
             }
 
+            if (supportsBinding && boneObject.has("binding")) {
+                if (!boneObject.get("binding").isJsonPrimitive() || !boneObject.getAsJsonPrimitive("binding").isString()) {
+                    throw new IllegalArgumentException("Bone '" + name + "' binding must be a string MoLang expression");
+                }
+                bone.setBinding(boneObject.get("binding").getAsString());
+            }
+
             if (boneObject.has("poly_mesh")) {
                 bone.setPolyMesh(parsePolyMesh(boneObject.getAsJsonObject("poly_mesh")));
+            }
+
+            if (boneObject.has("texture_meshes") && boneObject.get("texture_meshes").isJsonArray()) {
+                for (JsonElement textureMeshElement : boneObject.getAsJsonArray("texture_meshes")) {
+                    if (!textureMeshElement.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject textureMeshObject = textureMeshElement.getAsJsonObject();
+                    bone.getTextureMeshes().add(new TextureMesh(
+                            textureMeshObject.has("texture") ? textureMeshObject.get("texture").getAsString() : "default",
+                            new Position3V(vector(textureMeshObject, "local_pivot", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "position", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "rotation", 0, 0, 0)),
+                            new Position3V(vector(textureMeshObject, "scale", 1, 1, 1)),
+                            textureMeshObject.has("use_pixel_depth") && !textureMeshObject.get("use_pixel_depth").getAsBoolean()
+                                    ? Math.max(textureWidth, textureHeight) / 16.0F : 1.0F));
+                }
+                // Keep texture_meshes separate: Bedrock builds their alpha voxel sides from the
+                // selected attachable texture at render time. Merging them into poly_mesh loses
+                // that contract and makes ordinary geometry consumers reinterpret their space.
             }
 
             if (boneObject.has("locators") && boneObject.get("locators").isJsonObject()) {
@@ -220,4 +269,27 @@ public class BedrockGeometryParser {
 
         return new PolyMesh(normalizedUvs, positions, normals, uvs, polys);
     }
+
+    private static float[] vector(JsonObject object, String name, float x, float y, float z) {
+        if (!object.has(name) || !object.get(name).isJsonArray()) {
+            return new float[]{x, y, z};
+        }
+        final JsonArray values = object.getAsJsonArray(name);
+        return new float[]{
+                values.size() > 0 ? values.get(0).getAsFloat() : x,
+                values.size() > 1 ? values.get(1).getAsFloat() : y,
+                values.size() > 2 ? values.get(2).getAsFloat() : z
+        };
+    }
+
+    private static int[][] face(int offset, int normal, int uvOffset,
+                                int a, int b, int c, int d) {
+        return new int[][]{
+                {offset + a, normal, uvOffset},
+                {offset + b, normal, uvOffset + 1},
+                {offset + c, normal, uvOffset + 2},
+                {offset + d, normal, uvOffset + 3}
+        };
+    }
+
 }
