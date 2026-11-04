@@ -75,3 +75,7 @@ git push origin master vv-json
 两个 workspace 都用 **Java 21、在 workspace 根目录** 构建(禁止子项目目录跑 Gradle):
 - ViaProxy 侧:`./gradlew :ViaBedrock:compileJava` 与 `:ViaProxy:assemble` 通过(relocated 变体 + RotationType 可解析)。
 - NeoForge 侧:`copy-mods.ps1 -Build`,VBU 编译通过且在线渲染无回归(尤其 UV/旋转/几何)。
+
+## 7. 几何格式与骨骼绑定
+
+解析器按几何文档的`format_version`决定字段语义：显式骨骼`binding`从1.16格式开始解析，较早格式和旧式`geometry.*`布局不应用该字段。可用格式中的绑定仍须是Molang字符串。解析结果不猜测主／副手，也不把未绑定根改成手部绑定；实体空间、复制宿主骨架与显式绑定的实际装配由渲染宿主负责。

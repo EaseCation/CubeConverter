@@ -25,6 +25,7 @@ public class BedrockGeometryParser {
 
     public static List<BedrockGeometryModel> parse(JsonObject json) {
         final List<BedrockGeometryModel> geometries = new ArrayList<>();
+        final boolean supportsBinding = supportsBinding(json);
 
         if (json.has("minecraft:geometry")) {
             final JsonElement element = json.get("minecraft:geometry");
@@ -39,7 +40,7 @@ public class BedrockGeometryParser {
                 }
                 JsonObject object = element1.getAsJsonObject();
 
-                final BedrockGeometryModel geometry = getGeometry(object, "minecraft:geometry", "texture_width", "texture_height");
+                final BedrockGeometryModel geometry = getGeometry(object, "minecraft:geometry", "texture_width", "texture_height", supportsBinding);
                 if (geometry == null) {
                     continue;
                 }
@@ -56,7 +57,7 @@ public class BedrockGeometryParser {
             if (!object.has("texturewidth")) {
                 continue;
             }
-            final BedrockGeometryModel geometry = getGeometry(object, elementName, "texturewidth", "textureheight");
+            final BedrockGeometryModel geometry = getGeometry(object, elementName, "texturewidth", "textureheight", false);
             if (geometry == null) {
                 continue;
             }
@@ -66,7 +67,27 @@ public class BedrockGeometryParser {
         return geometries;
     }
 
-    private static BedrockGeometryModel getGeometry(JsonObject geometry, String elementName, String textureWidthName, String textureHeightName) {
+    /** Explicit actor-bone bindings were added to the 1.16 geometry format. Older geometry ignores
+     * this member; accepting it there changes the attachment's entire coordinate frame. */
+    private static boolean supportsBinding(JsonObject document) {
+        if (!document.has("format_version")) return false;
+        final String[] version = document.get("format_version").getAsString().split("\\.");
+        if (version.length < 2 || version.length > 3) {
+            throw new IllegalArgumentException("Invalid geometry format_version");
+        }
+        try {
+            final int major = Integer.parseInt(version[0]);
+            final int minor = Integer.parseInt(version[1]);
+            final int patch = version.length == 3 ? Integer.parseInt(version[2]) : 0;
+            if (major < 0 || minor < 0 || patch < 0) throw new NumberFormatException();
+            return major > 1 || major == 1 && minor >= 16;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException("Invalid geometry format_version", error);
+        }
+    }
+
+    private static BedrockGeometryModel getGeometry(JsonObject geometry, String elementName, String textureWidthName, String textureHeightName,
+                                                    boolean supportsBinding) {
         JsonObject description = geometry.has("description") ? geometry.getAsJsonObject("description") : geometry;
         String identifier = description.has("identifier") ? description.get("identifier").getAsString() : elementName;
 
@@ -99,7 +120,7 @@ public class BedrockGeometryParser {
                 bone.setParent(boneObject.get("parent").getAsString());
             }
 
-            if (boneObject.has("binding")) {
+            if (supportsBinding && boneObject.has("binding")) {
                 if (!boneObject.get("binding").isJsonPrimitive() || !boneObject.getAsJsonPrimitive("binding").isString()) {
                     throw new IllegalArgumentException("Bone '" + name + "' binding must be a string MoLang expression");
                 }
