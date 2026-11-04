@@ -47,7 +47,7 @@ class AttachableParsingTest {
     @Test
     void preservesBindingWhenCloningBone() {
         List<BedrockGeometryModel> geometries = BedrockGeometryParser.parse("""
-                {"minecraft:geometry":[{
+                {"format_version":"1.16.0","minecraft:geometry":[{
                   "description":{"identifier":"geometry.test","texture_width":16,"texture_height":16},
                   "bones":[{"name":"root","pivot":[0,0,0],"rotation":[0,0,0],
                     "binding":"q.item_slot_to_bone_name(c.item_slot)"}]
@@ -61,6 +61,20 @@ class AttachableParsingTest {
         Parent differentBinding = new Parent(bone.getName(), bone.getPivot(), bone.getRotation());
         differentBinding.setBinding("rightitem");
         assertNotEquals(bone, differentBinding);
+    }
+
+    @Test
+    void bindingRequiresModernGeometryFormat() {
+        String geometry = """
+                {"format_version":"%s","minecraft:geometry":[{
+                  "description":{"identifier":"geometry.test","texture_width":16,"texture_height":16},
+                  "bones":[{"name":"root","binding":"rightitem"}]
+                }]}
+                """;
+        assertNull(BedrockGeometryParser.parse(geometry.formatted("1.12.0"))
+                .getFirst().getParents().getFirst().getBinding());
+        assertEquals("rightitem", BedrockGeometryParser.parse(geometry.formatted("1.16.0"))
+                .getFirst().getParents().getFirst().getBinding());
     }
 
     @Test
