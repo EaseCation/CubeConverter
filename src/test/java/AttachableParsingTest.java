@@ -71,7 +71,7 @@ class AttachableParsingTest {
                   "bones":[{"name":"root","binding":"rightitem"}]
                 }]}
                 """;
-        assertNull(BedrockGeometryParser.parse(geometry.formatted("1.12.0"))
+        assertEquals("", BedrockGeometryParser.parse(geometry.formatted("1.12.0"))
                 .getFirst().getParents().getFirst().getBinding());
         assertEquals("rightitem", BedrockGeometryParser.parse(geometry.formatted("1.16.0"))
                 .getFirst().getParents().getFirst().getBinding());
