@@ -13,11 +13,6 @@ repositories {
     }
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
 
 dependencies {
     // compileOnlyApi:relocated gson(com.viaversion.viaversion.libs.gson)既供本工程编译,也透传到
@@ -35,6 +30,12 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Runtime tests exercise the same relocated Gson API supplied by ViaVersion in production.
+    testRuntimeOnly("com.viaversion:viaversion-common:5.9.2-SNAPSHOT") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
+        }
+    }
 }
 
 java {
