@@ -92,11 +92,13 @@ public class BedrockControllerParser {
                 lightColorMultiplier = parseFloatOrDefault(object.get("light_color_multiplier"), 1.0f);
             }
 
+            final BedrockRenderController.UvAnim uvAnim = parseUvAnim(object.get("uv_anim"));
+
             final JsonObject arrays = object.getAsJsonObject("arrays");
             if (arrays == null) {
                 list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression,
                         textureExpressions, List.of(), List.of(), List.of(), partVisibility,
-                        colorExpressions, ignoreLighting, lightColorMultiplier));
+                        colorExpressions, ignoreLighting, lightColorMultiplier, uvAnim));
                 continue;
             }
 
@@ -106,10 +108,37 @@ public class BedrockControllerParser {
 
             list.add(new BedrockRenderController(identifier, materialsMap, geometryExpression,
                     textureExpressions, materials, textures, geometries, partVisibility,
-                    colorExpressions, ignoreLighting, lightColorMultiplier));
+                    colorExpressions, ignoreLighting, lightColorMultiplier, uvAnim));
         }
 
         return list;
+    }
+
+    // uv_anim: {"offset": [u, v], "scale": [u, v]}; each entry is a number or a MoLang expression.
+    // A missing offset defaults to 0 and a missing scale to 1, matching Bedrock.
+    private static BedrockRenderController.UvAnim parseUvAnim(final JsonElement element) {
+        if (element == null || !element.isJsonObject()) {
+            return null;
+        }
+        final JsonObject object = element.getAsJsonObject();
+        final String[] offset = parsePair(object.get("offset"), "0");
+        final String[] scale = parsePair(object.get("scale"), "1");
+        return new BedrockRenderController.UvAnim(offset[0], offset[1], scale[0], scale[1]);
+    }
+
+    private static String[] parsePair(final JsonElement element, final String fallback) {
+        final String[] pair = {fallback, fallback};
+        if (element == null || !element.isJsonArray()) {
+            return pair;
+        }
+        final JsonArray array = element.getAsJsonArray();
+        for (int i = 0; i < 2 && i < array.size(); i++) {
+            final JsonElement value = array.get(i);
+            if (value.isJsonPrimitive()) {
+                pair[i] = value.getAsString();
+            }
+        }
+        return pair;
     }
 
     // light_color_multiplier (and similar fields) may be a MoLang expression such as

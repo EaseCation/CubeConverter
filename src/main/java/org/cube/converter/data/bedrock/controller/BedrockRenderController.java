@@ -16,7 +16,18 @@ public record BedrockRenderController(String identifier, Map<String, String> mat
                                       List<Array> materials, List<Array> textures, List<Array> geometries,
                                       Map<String, String> partVisibility,
                                       Map<String, String> colorExpressions,
-                                      boolean ignoreLighting, float lightColorMultiplier) {
+                                      boolean ignoreLighting, float lightColorMultiplier,
+                                      UvAnim uvAnim) {
+    public BedrockRenderController(String identifier, Map<String, String> materialsMap,
+                                   String geometryExpression, List<String> textureExpressions,
+                                   List<Array> materials, List<Array> textures, List<Array> geometries,
+                                   Map<String, String> partVisibility,
+                                   Map<String, String> colorExpressions,
+                                   boolean ignoreLighting, float lightColorMultiplier) {
+        this(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures,
+                geometries, partVisibility, colorExpressions, ignoreLighting, lightColorMultiplier, null);
+    }
+
     public BedrockRenderController(String identifier, Map<String, String> materialsMap,
                                    String geometryExpression, List<String> textureExpressions,
                                    List<Array> materials, List<Array> textures, List<Array> geometries,
@@ -24,6 +35,13 @@ public record BedrockRenderController(String identifier, Map<String, String> mat
                                    boolean ignoreLighting, float lightColorMultiplier) {
         this(identifier, materialsMap, geometryExpression, textureExpressions, materials, textures,
                 geometries, partVisibility, Map.of(), ignoreLighting, lightColorMultiplier);
+    }
+
+    /**
+     * uv_anim: offset/scale are MoLang expressions (constants are kept as their string form).
+     * The renderer applies uv' = offset + uv * scale in normalized texture space.
+     */
+    public record UvAnim(String offsetU, String offsetV, String scaleU, String scaleV) {
     }
 
     public record Array(String name, List<String> values) {
