@@ -4,7 +4,18 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
+    // EaseCation private repository (Aliyun Yunxiao Packages), only for net.easecation.* coordinates.
+    // Credentials: yunxiaoMavenUsername / yunxiaoMavenPassword in ~/.gradle/gradle.properties.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "yunxiaoMaven"
+                url = "https://easecation-cn-hangzhou.devops.aliyuncs.com/packages/api/protocol/maven/14075-release-h64s7e"
+                credentials(PasswordCredentials)
+            }
+        }
+        filter { includeGroupByRegex "net\\.easecation(\\..*)?" }
+    }
     maven {
         url = "https://repo.viaversion.com"
     }
@@ -18,7 +29,7 @@ dependencies {
     // compileOnlyApi:relocated gson(com.viaversion.viaversion.libs.gson)既供本工程编译,也透传到
     // 消费方(BedrockMotion/ViaBedrock)的 compile classpath——它们需要它来解析本库解析器的重载签名
     // (parse(JsonObject) 等)。不进运行期(由 ViaVersion 提供)。plain 分支(NeoForge)无此依赖,天然区分风味。
-    compileOnlyApi("com.viaversion:viaversion-common:5.9.2-SNAPSHOT") {
+    compileOnlyApi("net.easecation.fork.viaversion:viaversion-common:5.9.2-ec.1") {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
         }
@@ -31,7 +42,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // Runtime tests exercise the same relocated Gson API supplied by ViaVersion in production.
-    testRuntimeOnly("com.viaversion:viaversion-common:5.9.2-SNAPSHOT") {
+    testRuntimeOnly("net.easecation.fork.viaversion:viaversion-common:5.9.2-ec.1") {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
         }
@@ -44,8 +55,9 @@ java {
     }
 }
 
-group = 'org.oryxel.cube'
-version = '1.3'
+// EaseCation fork coordinates/versioning (upstream org.oryxel.cube 1.3), see GeyserWorkspace docs/maven-coordinates.md
+group = 'net.easecation.fork.oryxel.cube'
+version = '1.3-ec.1'
 description = 'cubeconverter'
 
 tasks.withType(JavaCompile).configureEach {
@@ -60,23 +72,19 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
-        }
-        // JitPack 使用 com.github.<org>:<repo> 坐标，本地也发布一份兼容的
-        jitpackCompat(MavenPublication) {
-            groupId = 'com.github.EaseCation'
-            artifactId = 'CubeConverter'
-            from components.java
+            pom.properties = ['upstream.groupId': 'org.oryxel.cube', 'upstream.version': '1.3']
         }
     }
 
     repositories {
+        // EaseCation private repository (Aliyun Yunxiao Packages).
+        // Credentials: yunxiaoMavenUsername / yunxiaoMavenPassword in ~/.gradle/gradle.properties.
         maven {
-            name = "GitHubPackages"
-            url = "https://maven.pkg.github.com/oryxel/cubeconverter"
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-            }
+            name = "yunxiaoMaven"
+            url = version.toString().endsWith('-SNAPSHOT')
+                    ? 'https://easecation-cn-hangzhou.devops.aliyuncs.com/packages/api/protocol/maven/14075-snapshot-bjmmxv'
+                    : 'https://easecation-cn-hangzhou.devops.aliyuncs.com/packages/api/protocol/maven/14075-release-h64s7e'
+            credentials(PasswordCredentials)
         }
     }
 }
