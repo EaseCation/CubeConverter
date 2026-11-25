@@ -4,7 +4,6 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
     maven {
         url = 'https://repo.maven.apache.org/maven2/'
     }
@@ -26,8 +25,11 @@ java {
     }
 }
 
-group = 'org.oryxel.cube'
-version = '1.3'
+// EaseCation fork coordinates/versioning (upstream org.oryxel.cube 1.3), see GeyserWorkspace docs/maven-coordinates.md.
+// This is the plain-Gson flavor (master, used by NeoForgeWorkspace); the ViaVersion-relocated-Gson flavor
+// (unified-vv-json lineage, used by ViaProxyWorkspace) is published from feature/yunxiao-maven as `cubeconverter`.
+group = 'net.easecation.fork.oryxel.cube'
+version = '1.3-ec.2'
 description = 'cubeconverter'
 
 tasks.withType(JavaCompile).configureEach {
@@ -41,24 +43,21 @@ tasks.withType(Javadoc).configureEach {
 publishing {
     publications {
         maven(MavenPublication) {
+            artifactId = 'cubeconverter-gson'
             from components.java
-        }
-        // JitPack 使用 com.github.<org>:<repo> 坐标，本地也发布一份兼容的
-        jitpackCompat(MavenPublication) {
-            groupId = 'com.github.EaseCation'
-            artifactId = 'CubeConverter'
-            from components.java
+            pom.properties = ['upstream.groupId': 'org.oryxel.cube', 'upstream.version': '1.3']
         }
     }
 
     repositories {
+        // EaseCation private repository (Aliyun Yunxiao Packages).
+        // Credentials: yunxiaoMavenUsername / yunxiaoMavenPassword in ~/.gradle/gradle.properties.
         maven {
-            name = "GitHubPackages"
-            url = "https://maven.pkg.github.com/oryxel/cubeconverter"
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
-            }
+            name = "yunxiaoMaven"
+            url = version.toString().endsWith('-SNAPSHOT')
+                    ? 'https://easecation-cn-hangzhou.devops.aliyuncs.com/packages/api/protocol/maven/14075-snapshot-bjmmxv'
+                    : 'https://easecation-cn-hangzhou.devops.aliyuncs.com/packages/api/protocol/maven/14075-release-h64s7e'
+            credentials(PasswordCredentials)
         }
     }
 }
